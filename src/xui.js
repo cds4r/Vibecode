@@ -1,20 +1,31 @@
 import crypto from 'node:crypto';
+import { Agent } from 'undici';
 import { config, isPanelMock } from './config.js';
 
 /**
  * Клиент панели 3x-ui.
- * Если PANEL_URL не задан — работает в MOCK-режиме и возвращает демо-данные,
- * чтобы можно было разрабатывать и тестировать сайт/бота без реальной панели.
+ * Поддерживает два способа авторизации:
+ *  - API-токен (PANEL_API_TOKEN) через заголовок Authorization: Bearer — приоритетный;
+ *  - логин по username/password (cookie-сессия) — если токен не задан.
+ * Если PANEL_URL не задан — работает в MOCK-режиме и возвращает демо-данные.
  */
 
 let cookie = null;
 let cookieExpiresAt = 0;
+
+// Панель обычно за self-signed/локальным TLS — по флагу не проверяем сертификат.
+const panelDispatcher = config.panel.insecureTLS
+  ? new Agent({ connect: { rejectUnauthorized: false } })
+  : undefined;
+
+const useToken = () => !!config.panel.apiToken;
 
 function uuid() {
   return crypto.randomUUID();
 }
 
 async function login() {
+  if (useToken()) return null; // токен — cookie не нужен
   if (cookie && Date.now() < cookieExpiresAt) return cookie;
   const res = await fetch(`${config.panel.url}/login`, {
     method: 'POST',
@@ -24,6 +35,7 @@ async function login() {
       password: config.panel.password,
     }),
     redirect: 'manual',
+    dispatcher: panelDispatcher,
   });
   const setCookie = res.headers.get('set-cookie');
   if (!setCookie) {
@@ -36,10 +48,16 @@ async function login() {
 }
 
 async function panelFetch(pathname, options = {}) {
-  const c = await login();
+  const headers = { ...(options.headers || {}) };
+  if (useToken()) {
+    headers.Authorization = `Bearer ${config.panel.apiToken}`;
+  } else {
+    headers.Cookie = await login();
+  }
   const res = await fetch(`${config.panel.url}${pathname}`, {
     ...options,
-    headers: { Cookie: c, ...(options.headers || {}) },
+    headers,
+    dispatcher: panelDispatcher,
   });
   const text = await res.text();
   let json;
@@ -162,6 +180,10 @@ export function subscriptionUrl(subId) {
 export async function panelStatus() {
   if (isPanelMock) return { ok: true, mock: true };
   try {
+    if (useToken()) {
+      const json = await panelFetch('/panel/api/inbounds/list');
+      return { ok: !!json.success, mock: false };
+    }
     await login();
     return { ok: true, mock: false };
   } catch (e) {

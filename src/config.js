@@ -25,9 +25,12 @@ export const config = {
     url: (process.env.PANEL_URL || '').replace(/\/$/, ''),
     username: process.env.PANEL_USERNAME || '',
     password: process.env.PANEL_PASSWORD || '',
+    apiToken: process.env.PANEL_API_TOKEN || '',
     inboundId: num(process.env.PANEL_INBOUND_ID, 1),
     nodeHost: process.env.NODE_HOST || '',
     subBaseUrl: (process.env.SUB_BASE_URL || '').replace(/\/$/, ''),
+    // Панель часто с self-signed или локальным TLS — по умолчанию не проверяем сертификат.
+    insecureTLS: bool(process.env.PANEL_INSECURE_TLS, true),
   },
 
   bot: {
