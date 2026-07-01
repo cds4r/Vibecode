@@ -23,6 +23,10 @@ function load() {
   } catch {
     data = { ...empty };
   }
+  // Защита от повреждённых записей (null/дырки в массивах).
+  for (const k of ['users', 'orders', 'subscriptions', 'sessions']) {
+    data[k] = Array.isArray(data[k]) ? data[k].filter(Boolean) : [];
+  }
   return data;
 }
 
@@ -73,11 +77,12 @@ export const db = {
     return session;
   },
   getSession(token) {
-    return load().sessions.find((s) => s.token === token) || null;
+    if (!token) return null;
+    return load().sessions.find((s) => s && s.token === token) || null;
   },
   deleteSession(token) {
     const d = load();
-    const i = d.sessions.findIndex((s) => s.token === token);
+    const i = d.sessions.findIndex((s) => s && s.token === token);
     if (i >= 0) { d.sessions.splice(i, 1); save(); }
   },
 
