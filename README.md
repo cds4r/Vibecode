@@ -102,7 +102,12 @@ ADMIN_TELEGRAM_IDS=12345678 # кому слать уведомления о по
 
 ## Деплой
 
-Это Node-приложение — разворачивайте на VPS (обычно там же, где 3x-ui). Держите процесс через `pm2`/`systemd`, а сайт проксируйте через Nginx с HTTPS. GitHub Pages не подойдёт (нужен backend).
+Это Node-приложение — разворачивайте на VPS (обычно там же, где 3x-ui). Держите процесс через `systemd`/`pm2`, а сайт проксируйте через Nginx с HTTPS. GitHub Pages не подойдёт (нужен backend).
+
+Полная пошаговая инструкция для Ubuntu — в [**DEPLOY.md**](DEPLOY.md). Готовые артефакты в `deploy/`:
+- `deploy/setup.sh` — установка одной командой (`sudo bash deploy/setup.sh`);
+- `deploy/vibevpn.service` — systemd-юнит (автозапуск + рестарт);
+- `deploy/nginx.conf.example` — reverse proxy для Nginx (+ certbot для HTTPS).
 
 ## Правовая оговорка
 

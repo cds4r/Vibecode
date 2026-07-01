@@ -1,0 +1,26 @@
+[Unit]
+Description=VibeVPN — сайт продаж VPN + Telegram-бот
+After=network.target
+
+[Service]
+Type=simple
+User=vibevpn
+Group=vibevpn
+WorkingDirectory=/opt/vibevpn
+# .env читается автоматически (dotenv) из WorkingDirectory
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+# Логи уходят в journald: journalctl -u vibevpn -f
+StandardOutput=journal
+StandardError=journal
+# Базовое усиление безопасности
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Каталог data/ должен оставаться записываемым
+ReadWritePaths=/opt/vibevpn/data
+
+[Install]
+WantedBy=multi-user.target
