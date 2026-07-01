@@ -146,9 +146,10 @@
   }
 
   /* ---------- Cabinet / Account ---------- */
-  function openCabinet() {
+  function openCabinet(tab) {
     openModal($('#cabinetModal'));
-    if (getAuth()) renderAccount(); else renderAuthForms('login');
+    if (getAuth()) renderAccount();
+    else renderAuthForms(tab === 'register' ? 'register' : 'login');
   }
 
   function renderAuthForms(tab) {
@@ -195,7 +196,7 @@
       const tokens = getTokens();
       if (tokens.length) { try { await api('/auth/claim', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({ tokens }) }); } catch {} }
       toast(tab === 'login' ? 'Вы вошли' : 'Аккаунт создан');
-      updateCabinetBtn();
+      updateAuthUI();
       renderAccount();
     } catch (e) { toast(e.message); }
   }
@@ -219,7 +220,7 @@
       box.innerHTML = subscriptions.map(subCardHtml).join('');
       wireSubCards(box);
     } catch (e) {
-      if (String(e.message).includes('вход')) { clearAuth(); updateCabinetBtn(); return renderAuthForms('login'); }
+      if (String(e.message).includes('вход')) { clearAuth(); updateAuthUI(); return renderAuthForms('login'); }
       $('#acctSubs').innerHTML = `<p class="co__hint">${esc(e.message)}</p>`;
     }
   }
@@ -250,16 +251,27 @@
   async function doLogout() {
     try { await api('/auth/logout', { method: 'POST', headers: authHeaders() }); } catch {}
     clearAuth();
-    updateCabinetBtn();
+    updateAuthUI();
     renderAuthForms('login');
     toast('Вы вышли из аккаунта');
   }
 
-  function updateCabinetBtn() {
-    const btn = $('#cabinetBtn');
+  function updateAuthUI() {
     const auth = getAuth();
-    btn.textContent = auth ? 'Кабинет' : 'Кабинет';
-    btn.classList.toggle('is-authed', !!auth);
+    const authed = !!auth;
+    const email = auth?.user?.email || '';
+    const show = (sel, on) => { const el = $(sel); if (el) el.hidden = !on; };
+    show('#loginBtn', !authed);
+    show('#registerBtn', !authed);
+    show('#cabinetBtn', authed);
+    show('#navLoginBtn', !authed);
+    show('#navRegisterBtn', !authed);
+    show('#navCabinetBtn', authed);
+    const hero = $('#heroRegisterBtn'); if (hero) hero.hidden = authed;
+    if (authed) {
+      const label = $('#cabinetBtnLabel'); if (label) label.textContent = email ? email.split('@')[0] : 'Кабинет';
+      const av = $('#acctAvatar'); if (av) av.textContent = (email.trim()[0] || 'A').toUpperCase();
+    }
   }
 
   /* ---------- Modals ---------- */
@@ -275,9 +287,13 @@
     const burger = $('#burger'), nav = $('#nav');
     burger.addEventListener('click', () => { const open = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', String(open)); });
     $$('.nav__link').forEach((l) => l.addEventListener('click', () => { nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); }));
-    $('#cabinetBtn').addEventListener('click', openCabinet);
+    const closeMenu = () => { nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); };
+    const bind = (id, tab) => { const el = $('#' + id); if (el) el.addEventListener('click', () => { closeMenu(); openCabinet(tab); }); };
+    bind('loginBtn', 'login'); bind('navLoginBtn', 'login');
+    bind('registerBtn', 'register'); bind('navRegisterBtn', 'register'); bind('heroRegisterBtn', 'register');
+    bind('cabinetBtn'); bind('navCabinetBtn');
     $('#year').textContent = new Date().getFullYear();
-    updateCabinetBtn();
+    updateAuthUI();
   }
 
   /* ---------- Init ---------- */

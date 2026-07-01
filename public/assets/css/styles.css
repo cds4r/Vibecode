@@ -21,6 +21,7 @@
 html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
 html { overflow-x: hidden; }
+[hidden] { display: none !important; }
 body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; max-width: 100%; }
 h1, h2, h3, h4 { margin: 0; font-family: var(--head); line-height: 1.12; letter-spacing: -.02em; font-weight: 700; }
 p { margin: 0; }
@@ -58,6 +59,10 @@ img { display: block; max-width: 100%; }
 .nav__link { padding: 8px 14px; border-radius: 999px; color: var(--muted); font-weight: 500; transition: color .2s, background .2s; }
 .nav__link:hover { color: var(--text); background: var(--surface); }
 .header__actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.account-btn { padding-left: 8px; gap: 8px; max-width: 200px; }
+.account-btn #cabinetBtnLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-avatar { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--grad); color: #04121e; font-family: var(--head); font-weight: 800; font-size: .78rem; }
+.nav__auth { display: none; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; color: var(--muted); }
 .burger { display: none; flex-direction: column; gap: 5px; width: 42px; height: 42px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); align-items: center; justify-content: center; cursor: pointer; }
 .burger span { width: 20px; height: 2px; background: var(--text); border-radius: 2px; transition: transform .3s, opacity .3s; }
 .burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -211,6 +216,8 @@ img { display: block; max-width: 100%; }
   .nav__link { padding: 12px 14px; }
   .burger { display: flex; }
   .header__actions .btn--ghost { display: none; }
+  .nav__auth { display: block; }
+  .nav__auth + .nav__auth { border-top: 1px solid transparent; }
   .footer__note { text-align: left; }
 }
 @media (max-width: 560px) {

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/styles.css?v=1" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=2" />
 </head>
 <body>
   <div class="bg-grid" aria-hidden="true"></div>
@@ -29,10 +29,17 @@
         <a href="#how" class="nav__link">Как подключить</a>
         <a href="#features" class="nav__link">Преимущества</a>
         <a href="#faq" class="nav__link">FAQ</a>
+        <button class="nav__link nav__auth" id="navLoginBtn" type="button">Войти</button>
+        <button class="nav__link nav__auth" id="navRegisterBtn" type="button">Регистрация</button>
+        <button class="nav__link nav__auth" id="navCabinetBtn" type="button" hidden>Мой кабинет</button>
       </nav>
       <div class="header__actions">
-        <button class="btn btn--ghost" id="cabinetBtn" type="button">Кабинет</button>
-        <a href="#plans" class="btn btn--primary">Купить</a>
+        <button class="btn btn--ghost" id="loginBtn" type="button">Войти</button>
+        <button class="btn btn--primary" id="registerBtn" type="button">Регистрация</button>
+        <button class="btn btn--ghost account-btn" id="cabinetBtn" type="button" hidden>
+          <span class="acct-avatar" id="acctAvatar" aria-hidden="true">A</span>
+          <span id="cabinetBtnLabel">Кабинет</span>
+        </button>
         <button class="burger" id="burger" type="button" aria-label="Меню" aria-expanded="false"><span></span><span></span><span></span></button>
       </div>
     </div>
@@ -48,6 +55,7 @@
           <p class="hero__lead">Быстрый VPN на протоколе VLESS + Reality. Мгновенная выдача ключа, подключение за минуту на любом устройстве. Никаких логов и ограничений скорости.</p>
           <div class="hero__cta">
             <a href="#plans" class="btn btn--primary btn--lg">Выбрать тариф</a>
+            <button class="btn btn--ghost btn--lg" id="heroRegisterBtn" type="button">Создать аккаунт</button>
             <a href="#" class="btn btn--ghost btn--lg" id="tgLink" hidden>Открыть в Telegram</a>
           </div>
           <div class="hero__stats">
@@ -164,6 +172,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="assets/js/app.js?v=1" defer></script>
+  <script src="assets/js/app.js?v=2" defer></script>
 </body>
 </html>
