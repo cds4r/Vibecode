@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Быстрый и надёжный VPN без ограничений. Подписки на VLESS/Reality с мгновенной выдачей ключа и подключением на всех устройствах." />
+  <meta name="theme-color" content="#0a0e1a" />
+  <title>VibeVPN — быстрый VPN без ограничений</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=1" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="#" class="brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" fill="url(#bg)" opacity=".18"/><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="url(#bg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="url(#bg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="bg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs></svg>
+        </span>
+        <span class="brand__name" id="brandName">VibeVPN</span>
+      </a>
+      <nav class="nav" id="nav">
+        <a href="#plans" class="nav__link">Тарифы</a>
+        <a href="#how" class="nav__link">Как подключить</a>
+        <a href="#features" class="nav__link">Преимущества</a>
+        <a href="#faq" class="nav__link">FAQ</a>
+      </nav>
+      <div class="header__actions">
+        <button class="btn btn--ghost" id="mySubsBtn" type="button">Мои подписки</button>
+        <a href="#plans" class="btn btn--primary">Купить</a>
+        <button class="burger" id="burger" type="button" aria-label="Меню" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero__inner">
+        <div class="hero__text">
+          <p class="pill"><span class="pill__dot"></span> Работает там, где другие не работают</p>
+          <h1 class="hero__title">Свобода в сети —<br /><span class="grad">без границ и цензуры</span></h1>
+          <p class="hero__lead">Быстрый VPN на протоколе VLESS + Reality. Мгновенная выдача ключа, подключение за минуту на любом устройстве. Никаких логов и ограничений скорости.</p>
+          <div class="hero__cta">
+            <a href="#plans" class="btn btn--primary btn--lg">Выбрать тариф</a>
+            <a href="#" class="btn btn--ghost btn--lg" id="tgLink" hidden>Открыть в Telegram</a>
+          </div>
+          <div class="hero__stats">
+            <div><b>99.9%</b><span>аптайм</span></div>
+            <div><b>&lt;1 Гбит/с</b><span>скорость</span></div>
+            <div><b>0</b><span>логов</span></div>
+            <div><b>24/7</b><span>поддержка</span></div>
+          </div>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="shield">
+            <svg viewBox="0 0 24 24" width="120" height="120" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" fill="url(#hg)" opacity=".15"/><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="url(#hg)" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.5 12l2.5 2.5L16 9.5" stroke="url(#hg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="hg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs></svg>
+          </div>
+          <span class="orbit orbit--1"></span>
+          <span class="orbit orbit--2"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+      <div class="container">
+        <header class="section__head">
+          <p class="eyebrow">Преимущества</p>
+          <h2>Почему выбирают нас</h2>
+        </header>
+        <div class="features" id="features-grid"></div>
+      </div>
+    </section>
+
+    <!-- Plans -->
+    <section class="section section--alt" id="plans">
+      <div class="container">
+        <header class="section__head">
+          <p class="eyebrow">Тарифы</p>
+          <h2>Выберите подписку</h2>
+          <p class="section__sub">Оплата — и через минуту ключ у вас. Отмена в любой момент.</p>
+        </header>
+        <div class="plans" id="plans-grid">
+          <div class="plans__loading">Загрузка тарифов…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How -->
+    <section class="section" id="how">
+      <div class="container">
+        <header class="section__head">
+          <p class="eyebrow">Подключение</p>
+          <h2>Как начать за 3 шага</h2>
+        </header>
+        <ol class="steps">
+          <li class="step"><span class="step__n">1</span><h3>Оплатите тариф</h3><p>Выберите подписку на сайте или в Telegram-боте и оплатите удобным способом.</p></li>
+          <li class="step"><span class="step__n">2</span><h3>Получите ключ</h3><p>Мгновенно получите VLESS-ключ и QR-код. Ничего настраивать вручную не нужно.</p></li>
+          <li class="step"><span class="step__n">3</span><h3>Подключитесь</h3><p>Импортируйте ключ в приложение (v2rayNG, Streisand, Hiddify) — и вы онлайн.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section--alt" id="faq">
+      <div class="container container--narrow">
+        <header class="section__head">
+          <p class="eyebrow">FAQ</p>
+          <h2>Частые вопросы</h2>
+        </header>
+        <div class="faq">
+          <details class="faq__item"><summary>Какие приложения нужны?</summary><p>Android — v2rayNG или Hiddify; iOS — Streisand или Shadowrocket; Windows/macOS — Hiddify или NekoBox. Мы даём ключ и ссылку-подписку, которые импортируются в любое из них.</p></details>
+          <details class="faq__item"><summary>Ведёте ли вы логи?</summary><p>Нет. Мы не храним историю посещений и не передаём данные третьим лицам.</p></details>
+          <details class="faq__item"><summary>Сколько устройств можно подключить?</summary><p>Зависит от тарифа — от 1 до 10 одновременных устройств.</p></details>
+          <details class="faq__item"><summary>Есть ли пробный период?</summary><p>Да, бесплатный пробный тариф на 3 дня — чтобы проверить скорость и стабильность.</p></details>
+          <details class="faq__item"><summary>Как оплатить?</summary><p>Через Telegram-бота (звёздами Telegram или картой) либо на сайте. После оплаты ключ выдаётся автоматически.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div>
+        <a href="#" class="brand"><span class="brand__mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="url(#fg)" stroke-width="1.6" stroke-linejoin="round"/><defs><linearGradient id="fg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs></svg></span><span class="brand__name">VibeVPN</span></a>
+        <p class="footer__tag">Свобода в сети без ограничений.</p>
+      </div>
+      <p class="footer__note">© <span id="year">2026</span> VibeVPN. Пользуясь сервисом, вы соглашаетесь использовать его в рамках закона.</p>
+    </div>
+  </footer>
+
+  <!-- Checkout modal -->
+  <div class="modal" id="checkoutModal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box" role="dialog" aria-modal="true">
+      <button class="modal__close icon-btn" data-close aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div id="checkoutBody"></div>
+    </div>
+  </div>
+
+  <!-- Subscription modal -->
+  <div class="modal" id="subModal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box" role="dialog" aria-modal="true">
+      <button class="modal__close icon-btn" data-close aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div id="subBody"></div>
+    </div>
+  </div>
+
+  <!-- My subscriptions modal -->
+  <div class="modal" id="mineModal" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box" role="dialog" aria-modal="true">
+      <button class="modal__close icon-btn" data-close aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h2 class="modal__title">Мои подписки</h2>
+      <div id="mineBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="assets/js/app.js?v=1" defer></script>
+</body>
+</html>
