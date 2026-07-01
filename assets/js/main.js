@@ -6,7 +6,8 @@
 
   /* ---------- Theme ---------- */
   const themeToggle = document.getElementById('themeToggle');
-  const stored = localStorage.getItem('vibecode-theme');
+  const urlTheme = new URLSearchParams(location.search).get('theme');
+  const stored = urlTheme === 'light' || urlTheme === 'dark' ? urlTheme : localStorage.getItem('vibecode-theme');
   if (stored === 'light' || stored === 'dark') {
     root.setAttribute('data-theme', stored);
   } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
