@@ -45,7 +45,8 @@ export async function fulfillOrder(orderId, payment = {}) {
   const plan = getPlan(order.planId);
   if (!plan) throw new Error('Тариф не найден');
 
-  const email = `${plan.id}-${slug()}@${config.brandName.toLowerCase()}`;
+  const brandSlug = (config.brandName || 'vpn').toLowerCase().replace(/[^a-z0-9]+/g, '') || 'vpn';
+  const email = `${plan.id}-${slug()}@${brandSlug}`;
   const expiryMs = planDurationMs(plan);
   const client = await createClient({
     email,
