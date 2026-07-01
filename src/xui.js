@@ -24,6 +24,22 @@ function uuid() {
   return crypto.randomUUID();
 }
 
+// Панель может отдавать settings/streamSettings как строку ИЛИ как объект — нормализуем.
+function asObj(v) {
+  if (v == null) return {};
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch { return {}; }
+}
+const asStr = (v) => (typeof v === 'string' ? v : JSON.stringify(v ?? {}));
+
+// Сериализуем добавление клиентов (update перезаписывает инбаунд целиком — избегаем гонок).
+let updateChain = Promise.resolve();
+function withLock(fn) {
+  const run = updateChain.then(fn, fn);
+  updateChain = run.then(() => {}, () => {});
+  return run;
+}
+
 async function login() {
   if (useToken()) return null; // токен — cookie не нужен
   if (cookie && Date.now() < cookieExpiresAt) return cookie;
@@ -82,8 +98,7 @@ function hostFromPanel() {
 function buildVlessLink(inbound, clientId, email) {
   const host = hostFromPanel();
   const port = inbound.port;
-  let stream = {};
-  try { stream = JSON.parse(inbound.streamSettings || '{}'); } catch { /* ignore */ }
+  const stream = asObj(inbound.streamSettings);
   const net = stream.network || 'tcp';
   const security = stream.security || 'none';
   const params = new URLSearchParams();
@@ -131,33 +146,57 @@ export async function createClient({ email, expiryMs, trafficGb, limitIp = 0 }) 
     return { clientId, email, subId, expiryTime, link, mock: true };
   }
 
-  const inbound = await getInbound(config.panel.inboundId);
-  const clientId = uuid();
-  const subId = crypto.randomBytes(8).toString('hex');
-  const client = {
-    id: clientId,
-    email,
-    enable: true,
-    expiryTime,
-    totalGB: totalBytes,
-    limitIp,
-    tgId: '',
-    subId,
-    reset: 0,
-    flow: '',
-  };
-  const json = await panelFetch('/panel/api/inbounds/addClient', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: config.panel.inboundId,
-      settings: JSON.stringify({ clients: [client] }),
-    }),
-  });
-  if (!json.success) throw new Error(`addClient failed: ${json.msg || 'unknown'}`);
+  // Добавляем клиента через обновление инбаунда: read-modify-write под локом.
+  // (Универсально для 3x-ui, в т.ч. когда у API-токена нет прав на addClient.)
+  return withLock(async () => {
+    const inbound = await getInbound(config.panel.inboundId);
+    const stream = asObj(inbound.streamSettings);
+    // Для Reality клиент должен использовать flow xtls-rprx-vision (иначе рукопожатие не сойдётся).
+    const security = stream.security || 'none';
+    const clientId = uuid();
+    const subId = crypto.randomBytes(8).toString('hex');
+    const client = {
+      id: clientId,
+      email,
+      enable: true,
+      expiryTime,
+      totalGB: totalBytes,
+      limitIp,
+      tgId: '',
+      subId,
+      reset: 0,
+      flow: security === 'reality' ? 'xtls-rprx-vision' : '',
+    };
 
-  const link = buildVlessLink(inbound, clientId, email);
-  return { clientId, email, subId, expiryTime, link, mock: false };
+    const settings = asObj(inbound.settings);
+    if (!Array.isArray(settings.clients)) settings.clients = [];
+    settings.clients.push(client);
+
+    const body = {
+      id: inbound.id,
+      up: inbound.up || 0,
+      down: inbound.down || 0,
+      total: inbound.total || 0,
+      remark: inbound.remark || '',
+      enable: inbound.enable !== false,
+      expiryTime: inbound.expiryTime || 0,
+      listen: inbound.listen || '',
+      port: inbound.port,
+      protocol: inbound.protocol,
+      settings: JSON.stringify(settings),
+      streamSettings: asStr(inbound.streamSettings),
+      sniffing: asStr(inbound.sniffing),
+    };
+    const json = await panelFetch(`/panel/api/inbounds/update/${config.panel.inboundId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!json.success) throw new Error(`addClient failed: ${json.msg || 'unknown'}`);
+
+    const link = buildVlessLink(inbound, clientId, email);
+    return { clientId, email, subId, expiryTime, link, mock: false };
+  });
 }
 
 /**
