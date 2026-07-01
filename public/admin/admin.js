@@ -3,16 +3,19 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const KEY_STORE = 'vibevpn-admin-key';
+  const AUTH_KEY = 'vibevpn-auth'; // общий с основным сайтом ключ сессии
 
   const getKey = () => sessionStorage.getItem(KEY_STORE) || '';
   const setKey = (k) => sessionStorage.setItem(KEY_STORE, k);
   const clearKey = () => sessionStorage.removeItem(KEY_STORE);
+  const getUserToken = () => { try { return (JSON.parse(localStorage.getItem(AUTH_KEY)) || {}).token || ''; } catch { return ''; } };
+  const setUserAuth = (v) => localStorage.setItem(AUTH_KEY, JSON.stringify(v));
 
   async function adminApi(path, opts = {}) {
-    const res = await fetch('/api' + path, {
-      ...opts,
-      headers: { 'x-admin-key': getKey(), ...(opts.headers || {}) },
-    });
+    const headers = { ...(opts.headers || {}) };
+    const key = getKey(); if (key) headers['x-admin-key'] = key;
+    const ut = getUserToken(); if (ut) headers['Authorization'] = 'Bearer ' + ut;
+    const res = await fetch('/api' + path, { ...opts, headers });
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) { const e = new Error('unauthorized'); e.unauthorized = true; throw e; }
     if (!res.ok) throw new Error(data.error || 'Ошибка запроса');
@@ -29,17 +32,43 @@
   let currentTab = 'orders';
 
   /* ---------- Auth gate ---------- */
+  let loginMode = 'account';
+  $$('#loginTabs .tab').forEach((t) => t.addEventListener('click', () => {
+    loginMode = t.dataset.mode;
+    $$('#loginTabs .tab').forEach((x) => x.classList.toggle('is-active', x === t));
+    $('#accountFields').hidden = loginMode !== 'account';
+    $('#keyFields').hidden = loginMode !== 'key';
+    $('#loginError').textContent = '';
+  }));
+
   $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const key = $('#adminKey').value.trim();
-    if (!key) return;
-    setKey(key);
+    $('#loginError').textContent = '';
     try {
-      await adminApi('/admin/auth', { method: 'POST' });
+      if (loginMode === 'key') {
+        const key = $('#adminKey').value.trim();
+        if (!key) return;
+        setKey(key);
+        await adminApi('/admin/auth', { method: 'POST' });
+      } else {
+        const email = $('#adminEmail').value.trim();
+        const password = $('#adminPass').value;
+        if (!email || !password) return;
+        const r = await fetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || 'Не удалось войти');
+        setUserAuth({ token: d.token, user: d.user });
+        await adminApi('/admin/auth', { method: 'POST' });
+      }
       enterDashboard();
     } catch (err) {
-      clearKey();
-      $('#loginError').textContent = err.unauthorized ? 'Неверный ключ администратора.' : err.message;
+      if (loginMode === 'key') clearKey();
+      $('#loginError').textContent = err.unauthorized
+        ? (loginMode === 'key' ? 'Неверный ключ администратора.' : 'Этот аккаунт не является администратором.')
+        : err.message;
     }
   });
 
@@ -164,7 +193,7 @@
   }
 
   /* ---------- Init ---------- */
-  if (getKey()) {
+  if (getKey() || getUserToken()) {
     adminApi('/admin/auth', { method: 'POST' }).then(enterDashboard).catch(() => toLogin(''));
   }
 })();

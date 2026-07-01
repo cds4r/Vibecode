@@ -4,7 +4,7 @@ import { plans, getPlan } from '../plans.js';
 import { createOrder, fulfillOrder, subscriptionView, subscriptionSummary } from '../provision.js';
 import { db } from '../store.js';
 import { panelStatus } from '../xui.js';
-import { register, login, logout, publicUser, authOptional, authRequired } from '../auth.js';
+import { register, login, logout, publicUser, authOptional, authRequired, userFromToken, isAdminEmail } from '../auth.js';
 
 export function apiRouter(ctx = {}) {
   const router = express.Router();
@@ -69,6 +69,18 @@ export function apiRouter(ctx = {}) {
       const plan = getPlan(planId);
       if (!plan) return res.status(400).json({ error: 'Тариф не найден' });
 
+      const isTrial = plan.priceRub === 0;
+      // Пробный тариф — только для авторизованных и не более одного на аккаунт.
+      if (isTrial) {
+        if (!req.user) {
+          return res.status(401).json({ error: 'Войдите в аккаунт, чтобы получить пробную подписку' });
+        }
+        const alreadyUsed = db.subscriptionsByUser(req.user.id).some((s) => s.planId === plan.id);
+        if (alreadyUsed) {
+          return res.status(409).json({ error: 'Пробная подписка уже была активирована на этом аккаунте' });
+        }
+      }
+
       const order = createOrder({
         planId,
         source: 'web',
@@ -76,7 +88,7 @@ export function apiRouter(ctx = {}) {
         contact: contact || (req.user ? { email: req.user.email } : {}),
       });
 
-      if (plan.priceRub === 0) {
+      if (isTrial) {
         const sub = await fulfillOrder(order.id, { method: 'free' });
         return res.json({ orderId: order.id, free: true, token: sub.token });
       }
@@ -104,10 +116,17 @@ export function apiRouter(ctx = {}) {
 
   /* ===================== Admin ===================== */
   const requireAdmin = (req, res, next) => {
-    if (!config.adminKey || req.get('x-admin-key') !== config.adminKey) {
-      return res.status(401).json({ error: 'Не авторизовано' });
+    // 1) По ключу администратора
+    const key = req.get('x-admin-key');
+    if (config.adminKey && key === config.adminKey) return next();
+    // 2) По аккаунту из «белого списка» админ-почт (Bearer-токен сессии)
+    const header = req.get('authorization') || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (token) {
+      const user = userFromToken(token);
+      if (user && isAdminEmail(user.email)) return next();
     }
-    next();
+    return res.status(401).json({ error: 'Не авторизовано' });
   };
 
   // Проверка ключа (для формы входа в админку)

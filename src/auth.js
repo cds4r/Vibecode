@@ -1,7 +1,13 @@
 import crypto from 'node:crypto';
 import { db, id } from './store.js';
+import { config } from './config.js';
 
 const SESSION_TTL = 90 * 24 * 60 * 60 * 1000; // 90 дней
+
+export function isAdminEmail(email) {
+  const e = String(email || '').trim().toLowerCase();
+  return !!e && config.adminEmails.includes(e);
+}
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -27,7 +33,7 @@ function issueSession(userId) {
 
 export function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, email: u.email || null, name: u.name || '', createdAt: u.createdAt };
+  return { id: u.id, email: u.email || null, name: u.name || '', createdAt: u.createdAt, admin: isAdminEmail(u.email) };
 }
 
 export function register({ email, password, name }) {

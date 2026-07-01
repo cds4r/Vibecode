@@ -16,6 +16,10 @@ export const config = {
   brandName: process.env.BRAND_NAME || 'VibeVPN',
   allowMockPay: bool(process.env.ALLOW_MOCK_PAY, true),
   adminKey: process.env.ADMIN_KEY || '',
+  adminEmails: (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
 
   panel: {
     url: (process.env.PANEL_URL || '').replace(/\/$/, ''),

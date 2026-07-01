@@ -72,6 +72,11 @@
   async function startCheckout(planId) {
     const plan = plans.find((p) => p.id === planId);
     if (!plan) return;
+    // Пробный тариф требует аккаунта (1 на пользователя).
+    if (plan.priceRub === 0 && !getAuth()) {
+      toast('Создайте аккаунт, чтобы получить пробную подписку');
+      return openCabinet('register');
+    }
     try {
       const res = await api('/checkout', {
         method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -204,13 +209,15 @@
   async function renderAccount() {
     const body = $('#cabinetBody');
     const auth = getAuth();
+    const isAdmin = !!auth?.user?.admin;
     body.innerHTML = `
       <div class="acct-head">
-        <div><div class="acct-hi">Здравствуйте 👋</div><div class="acct-email">${esc(auth?.user?.email || '')}</div></div>
+        <div><div class="acct-hi">Здравствуйте 👋</div><div class="acct-email">${esc(auth?.user?.email || '')}${isAdmin ? ' <span class="acct-badge">админ</span>' : ''}</div></div>
         <button class="btn btn--ghost" id="logoutBtn">Выйти</button>
       </div>
       <div id="acctSubs"><p class="co__hint">Загрузка подписок…</p></div>
-      <a href="#plans" class="btn btn--primary btn--block" id="acctBuyMore" style="margin-top:16px">Купить ещё подписку</a>`;
+      <a href="#plans" class="btn btn--primary btn--block" id="acctBuyMore" style="margin-top:16px">Купить ещё подписку</a>
+      ${isAdmin ? '<a href="/admin/" class="btn btn--ghost btn--block" id="acctAdmin" style="margin-top:10px">Открыть админ-панель</a>' : ''}`;
     $('#logoutBtn').addEventListener('click', doLogout);
     $('#acctBuyMore').addEventListener('click', () => closeModal($('#cabinetModal')));
     try {

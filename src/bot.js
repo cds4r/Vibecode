@@ -99,6 +99,15 @@ async function startBuy(ctx, planId) {
   const plan = getPlan(planId);
   if (!plan) return ctx.answerCbQuery('Тариф не найден');
   const user = await registerUser(ctx);
+
+  // Пробный тариф — не более одного на пользователя.
+  if (plan.priceRub === 0 && plan.priceStars === 0) {
+    const alreadyUsed = user && db.subscriptionsByUser(user.id).some((s) => s.planId === plan.id);
+    if (alreadyUsed) {
+      return ctx.answerCbQuery('Пробная подписка уже была активирована', { show_alert: true });
+    }
+  }
+
   const order = createOrder({
     planId,
     userId: user?.id || null,
