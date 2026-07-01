@@ -172,9 +172,24 @@ img { display: block; max-width: 100%; }
 .mock-note { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.35); color: #fcd34d; border-radius: 10px; padding: 10px 12px; font-size: .84rem; margin: 14px 0; }
 
 .mine-card { border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
-.mine-card__top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.mine-card__top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .mine-card__name { font-family: var(--head); font-weight: 700; }
+.mine-card__btns { display: flex; gap: 8px; }
 .mine-empty { color: var(--muted); text-align: center; padding: 20px; }
+.btn--sm { padding: 8px 14px; font-size: .82rem; }
+
+/* Auth / cabinet */
+.tabs { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 18px; }
+.tab { flex: 1; padding: 9px; border: none; background: transparent; color: var(--muted); font-family: var(--head); font-weight: 600; border-radius: 9px; cursor: pointer; transition: background .2s, color .2s; }
+.tab.is-active { background: var(--grad); color: #04121e; }
+.authform { display: flex; flex-direction: column; }
+.input { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: .95rem; outline: none; transition: border-color .2s; }
+.input:focus { border-color: var(--accent); }
+.acct-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
+.acct-hi { color: var(--muted); font-size: .88rem; }
+.acct-email { font-family: var(--head); font-weight: 700; font-size: 1.2rem; word-break: break-all; }
+.footer__admin { color: var(--muted); text-decoration: underline; }
+.footer__admin:hover { color: var(--accent); }
 .dot-live { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .dot-live.on { background: #34d399; box-shadow: 0 0 8px #34d399; }
 .dot-live.off { background: #f87171; }

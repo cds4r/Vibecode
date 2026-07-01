@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-const empty = { users: [], orders: [], subscriptions: [] };
+const empty = { users: [], orders: [], subscriptions: [], sessions: [] };
 
 function ensure() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -54,8 +54,31 @@ export const db = {
   findUserByTelegram(tgId) {
     return load().users.find((u) => u.telegramId === String(tgId)) || null;
   },
+  findUserByEmail(email) {
+    const e = String(email || '').trim().toLowerCase();
+    return load().users.find((u) => (u.email || '').toLowerCase() === e) || null;
+  },
   getUser(uid) {
     return load().users.find((u) => u.id === uid) || null;
+  },
+  listUsers() {
+    return load().users.slice().reverse();
+  },
+
+  // ---- Sessions ----
+  createSession(session) {
+    const d = load();
+    d.sessions.push(session);
+    save();
+    return session;
+  },
+  getSession(token) {
+    return load().sessions.find((s) => s.token === token) || null;
+  },
+  deleteSession(token) {
+    const d = load();
+    const i = d.sessions.findIndex((s) => s.token === token);
+    if (i >= 0) { d.sessions.splice(i, 1); save(); }
   },
 
   // ---- Orders ----
@@ -101,5 +124,26 @@ export const db = {
     const user = this.findUserByTelegram(tgId);
     if (!user) return [];
     return this.subscriptionsByUser(user.id);
+  },
+  listSubscriptions() {
+    return load().subscriptions.slice().reverse();
+  },
+
+  // ---- Aggregate stats ----
+  stats() {
+    const d = load();
+    const now = Date.now();
+    const paidOrders = d.orders.filter((o) => o.status === 'paid');
+    const revenueRub = paidOrders.reduce((s, o) => s + (o.amountRub || 0), 0);
+    const activeSubs = d.subscriptions.filter((s) => s.expiresAt === 0 || s.expiresAt > now).length;
+    return {
+      users: d.users.length,
+      orders: d.orders.length,
+      paidOrders: paidOrders.length,
+      pendingOrders: d.orders.filter((o) => o.status === 'pending').length,
+      subscriptions: d.subscriptions.length,
+      activeSubscriptions: activeSubs,
+      revenueRub,
+    };
   },
 };

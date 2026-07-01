@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Админ-панель — VibeVPN</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/styles.css?v=2" />
+  <link rel="stylesheet" href="admin.css?v=1" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <!-- Login gate -->
+  <div class="admin-login" id="loginGate">
+    <form class="admin-login__box" id="loginForm">
+      <div class="admin-login__brand">
+        <span class="brand__mark"><svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="url(#lg)" stroke-width="1.6" stroke-linejoin="round"/><defs><linearGradient id="lg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs></svg></span>
+        <b>VibeVPN · Админка</b>
+      </div>
+      <label class="field-label">Ключ администратора</label>
+      <input class="input" type="password" id="adminKey" placeholder="ADMIN_KEY из .env" autocomplete="off" />
+      <button class="btn btn--primary btn--block" type="submit" style="margin-top:14px">Войти</button>
+      <p class="admin-login__hint" id="loginError"></p>
+      <p class="admin-login__hint"><a href="/">← На сайт</a></p>
+    </form>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="admin" id="dashboard" hidden>
+    <header class="admin__top">
+      <div class="brand"><span class="brand__mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="url(#tg)" stroke-width="1.6" stroke-linejoin="round"/><defs><linearGradient id="tg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs></svg></span><span class="brand__name">Админка</span></div>
+      <div class="admin__actions">
+        <button class="btn btn--ghost btn--sm" id="refreshBtn">Обновить</button>
+        <button class="btn btn--ghost btn--sm" id="adminLogout">Выйти</button>
+      </div>
+    </header>
+
+    <main class="admin__main">
+      <section class="stats-grid" id="statsGrid"></section>
+
+      <div class="tabs admin-tabs" id="adminTabs">
+        <button class="tab is-active" data-tab="orders">Заказы</button>
+        <button class="tab" data-tab="subscriptions">Подписки</button>
+        <button class="tab" data-tab="users">Пользователи</button>
+      </div>
+
+      <section class="admin-table-wrap">
+        <div id="tableArea"><p class="co__hint">Загрузка…</p></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="admin.js?v=1" defer></script>
+</body>
+</html>

@@ -31,7 +31,7 @@
         <a href="#faq" class="nav__link">FAQ</a>
       </nav>
       <div class="header__actions">
-        <button class="btn btn--ghost" id="mySubsBtn" type="button">Мои подписки</button>
+        <button class="btn btn--ghost" id="cabinetBtn" type="button">Кабинет</button>
         <a href="#plans" class="btn btn--primary">Купить</a>
         <button class="burger" id="burger" type="button" aria-label="Меню" aria-expanded="false"><span></span><span></span><span></span></button>
       </div>
@@ -131,7 +131,7 @@
         <a href="#" class="brand"><span class="brand__mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z" stroke="url(#fg)" stroke-width="1.6" stroke-linejoin="round"/><defs><linearGradient id="fg" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs></svg></span><span class="brand__name">VibeVPN</span></a>
         <p class="footer__tag">Свобода в сети без ограничений.</p>
       </div>
-      <p class="footer__note">© <span id="year">2026</span> VibeVPN. Пользуясь сервисом, вы соглашаетесь использовать его в рамках закона.</p>
+      <p class="footer__note">© <span id="year">2026</span> VibeVPN. Пользуясь сервисом, вы соглашаетесь использовать его в рамках закона. · <a href="/admin/" class="footer__admin">Админ-панель</a></p>
     </div>
   </footer>
 
@@ -153,13 +153,12 @@
     </div>
   </div>
 
-  <!-- My subscriptions modal -->
-  <div class="modal" id="mineModal" hidden>
+  <!-- Cabinet modal -->
+  <div class="modal" id="cabinetModal" hidden>
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box" role="dialog" aria-modal="true">
       <button class="modal__close icon-btn" data-close aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <h2 class="modal__title">Мои подписки</h2>
-      <div id="mineBody"></div>
+      <div id="cabinetBody"></div>
     </div>
   </div>
 

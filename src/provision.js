@@ -82,6 +82,23 @@ export async function fulfillOrder(orderId, payment = {}) {
   return sub;
 }
 
+// Лёгкая сводка подписки (без QR и запроса трафика) — для списков.
+export function subscriptionSummary(sub) {
+  return {
+    token: sub.token,
+    planId: sub.planId,
+    planName: sub.planName,
+    email: sub.email,
+    createdAt: sub.createdAt,
+    expiresAt: sub.expiresAt,
+    devices: sub.devices,
+    trafficGb: sub.trafficGb,
+    daysLeft: sub.expiresAt ? Math.max(0, Math.ceil((sub.expiresAt - Date.now()) / 86400000)) : null,
+    active: sub.expiresAt === 0 || sub.expiresAt > Date.now(),
+    mock: sub.mock,
+  };
+}
+
 export async function subscriptionView(token) {
   const sub = db.getSubscription(token);
   if (!sub) return null;
