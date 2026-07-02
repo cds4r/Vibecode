@@ -3,3 +3,6 @@ node_modules/
 data/
 *.log
 .DS_Store
+
+# Локальные превью
+.preview/
