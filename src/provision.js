@@ -116,8 +116,9 @@ export async function subscriptionView(token) {
     }
   } catch { /* ignore */ }
 
+  // QR по ссылке-подписке (если есть) — скан сразу добавляет подписку в клиент; иначе по ключу.
   let qr = null;
-  try { qr = await QRCode.toDataURL(sub.link, { margin: 1, width: 320 }); } catch { /* ignore */ }
+  try { qr = await QRCode.toDataURL(sub.subUrl || sub.link, { margin: 1, width: 320 }); } catch { /* ignore */ }
 
   return {
     token: sub.token,

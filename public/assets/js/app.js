@@ -136,11 +136,17 @@
         <span class="sub-chip">Трафик: <b>${s.trafficGb ? s.trafficGb + ' ГБ' : '∞'}</b></span>
       </div>
       ${s.mock ? '<div class="mock-note">⚠️ Демо-режим: ключ тестовый. Подключите панель 3x-ui (PANEL_URL) для реальных конфигов.</div>' : ''}
-      ${s.qr ? `<img class="qr" src="${s.qr}" alt="QR-код конфигурации" />` : ''}
+      ${s.qr ? `<img class="qr" src="${s.qr}" alt="QR-код подписки" />` : ''}
+      ${s.subUrl ? `
+      <div class="field-label">URL подписки <span class="acct-badge">рекомендуется</span></div>
+      <div class="copybox"><input value="${esc(s.subUrl)}" readonly /><button class="btn btn--primary" data-copy="${encodeURIComponent(s.subUrl)}">Копировать</button></div>
+      <p class="co__hint" style="margin-top:6px">Вставьте эту ссылку в поле «URL подписки» вашего приложения (Happ, v2rayTun, Hiddify, Streisand, v2rayNG) — конфиги и маршрутизация обновятся автоматически.</p>
+      <details class="sub-adv"><summary>Показать одиночный ключ VLESS</summary>
+        <div class="copybox" style="margin-top:10px"><input value="${esc(s.link)}" readonly /><button class="btn btn--ghost" data-copy="${encodeURIComponent(s.link)}">Копировать</button></div>
+      </details>` : `
       <div class="field-label">Ключ VLESS</div>
       <div class="copybox"><input value="${esc(s.link)}" readonly /><button class="btn btn--ghost" data-copy="${encodeURIComponent(s.link)}">Копировать</button></div>
-      ${s.subUrl ? `<div class="field-label">Ссылка-подписка</div><div class="copybox"><input value="${esc(s.subUrl)}" readonly /><button class="btn btn--ghost" data-copy="${encodeURIComponent(s.subUrl)}">Копировать</button></div>` : ''}
-      <p class="co__hint" style="margin-top:16px">Импортируйте ключ в v2rayNG (Android), Streisand (iOS) или Hiddify (ПК).</p>`;
+      <p class="co__hint" style="margin-top:16px">Импортируйте ключ в v2rayNG (Android), Streisand (iOS) или Hiddify (ПК).</p>`}`;
   }
 
   function wireCopy(root) {
