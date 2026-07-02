@@ -1,4 +1,6 @@
 import express from 'express';
+import https from 'node:https';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config, isPanelMock } from './config.js';
@@ -62,6 +64,21 @@ async function main() {
     console.log(`   Панель 3x-ui: ${isPanelMock ? 'MOCK-режим (демо-конфиги)' : config.panel.url}`);
     console.log(`   Демо-оплата: ${config.allowMockPay ? 'включена' : 'выключена'}`);
   });
+
+  // Опциональный HTTPS-листенер (для отдачи подписки по https без внешнего прокси).
+  if (config.tls.cert && config.tls.key && config.tls.port) {
+    try {
+      const creds = {
+        cert: fs.readFileSync(config.tls.cert),
+        key: fs.readFileSync(config.tls.key),
+      };
+      https.createServer(creds, app).listen(config.tls.port, () => {
+        console.log(`   HTTPS: порт ${config.tls.port}`);
+      });
+    } catch (e) {
+      console.error('✗ HTTPS не запущен:', e.message);
+    }
+  }
 }
 
 main().catch((e) => {

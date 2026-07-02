@@ -33,6 +33,14 @@ export const config = {
     updateHours: num(process.env.SUB_UPDATE_HOURS, 24),
   },
 
+  // Встроенный HTTPS (для отдачи подписки по https, если нет внешнего reverse-proxy).
+  // Указываете пути к сертификату (лучше fullchain) и ключу + порт.
+  tls: {
+    cert: process.env.TLS_CERT || '',
+    key: process.env.TLS_KEY || '',
+    port: num(process.env.TLS_PORT, 0),
+  },
+
   panel: {
     url: (process.env.PANEL_URL || '').replace(/\/$/, ''),
     username: process.env.PANEL_USERNAME || '',
