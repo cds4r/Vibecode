@@ -21,6 +21,18 @@ export const config = {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
 
+  // Настройки ссылки-подписки (собственный endpoint /sub/:token).
+  sub: {
+    // Название подписки (Profile-Title) — как оно отображается в VPN-клиенте.
+    title: process.env.SUB_TITLE || process.env.BRAND_NAME || 'VibeVPN',
+    // Название сервера (remark каждого конфига), напр. «🇷🇺 Россия».
+    serverName: process.env.SUB_SERVER_NAME || '🇷🇺 Россия',
+    // Базовый публичный адрес, по которому доступна подписка (обычно адрес сайта).
+    publicBase: (process.env.SUB_PUBLIC_URL || process.env.PUBLIC_URL || `http://localhost:${num(process.env.PORT, 3000)}`).replace(/\/$/, ''),
+    // Как часто клиент обновляет подписку, часов.
+    updateHours: num(process.env.SUB_UPDATE_HOURS, 24),
+  },
+
   panel: {
     url: (process.env.PANEL_URL || '').replace(/\/$/, ''),
     username: process.env.PANEL_USERNAME || '',

@@ -149,10 +149,40 @@
       <p class="co__hint" style="margin-top:16px">Импортируйте ключ в v2rayNG (Android), Streisand (iOS) или Hiddify (ПК).</p>`}`;
   }
 
+  async function copyText(text) {
+    // navigator.clipboard доступен только в защищённом контексте (HTTPS/localhost).
+    if (navigator.clipboard && window.isSecureContext) {
+      try { await navigator.clipboard.writeText(text); return true; } catch { /* fallback ниже */ }
+    }
+    // Фолбэк для HTTP: временный textarea + execCommand('copy').
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch { return false; }
+  }
+
   function wireCopy(root) {
     $$('[data-copy]', root).forEach((b) => b.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(decodeURIComponent(b.dataset.copy)); toast('Скопировано'); }
-      catch { toast('Не удалось скопировать'); }
+      const text = decodeURIComponent(b.dataset.copy);
+      if (await copyText(text)) {
+        toast('Скопировано');
+      } else {
+        // Последний резерв: выделяем поле рядом, чтобы можно было скопировать вручную.
+        const inp = b.parentElement && b.parentElement.querySelector('input');
+        if (inp) { inp.focus(); inp.select(); }
+        toast('Выделено — нажмите «Копировать» в меню');
+      }
     }));
   }
 

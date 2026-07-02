@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { db, id } from './store.js';
 import { getPlan, planDurationMs, planDurationDays } from './plans.js';
-import { createClient, getClientTraffic, subscriptionUrl } from './xui.js';
+import { createClient, getClientTraffic } from './xui.js';
 import { config } from './config.js';
 
 function slug() {
@@ -66,7 +66,8 @@ export async function fulfillOrder(orderId, payment = {}) {
     clientId: client.clientId,
     subId: client.subId,
     link: client.link,
-    subUrl: subscriptionUrl(client.subId),
+    // Ссылка-подписка ведёт на наш собственный endpoint (полный контроль над названием).
+    subUrl: `${config.sub.publicBase}/sub/${token}`,
     createdAt: Date.now(),
     expiresAt: expiryMs ? Date.now() + expiryMs : 0,
     devices: plan.devices,
@@ -135,6 +136,41 @@ export async function subscriptionView(token) {
     mock: sub.mock,
     usage,
     qr,
+  };
+}
+
+// Меняет remark (#…) в vless-ссылке на заданное имя сервера.
+function renameLink(link, serverName) {
+  const base = String(link || '').split('#')[0];
+  return `${base}#${encodeURIComponent(serverName)}`;
+}
+
+/**
+ * Формирует данные подписки (для собственного endpoint /sub/:token):
+ * base64-тело со списком конфигов + заголовки (название подписки, срок и т.п.).
+ */
+export async function getSubFeed(token) {
+  const sub = db.getSubscription(token);
+  if (!sub) return null;
+
+  let used = 0;
+  try {
+    const t = await getClientTraffic(sub.email);
+    if (t) used = (t.up || 0) + (t.down || 0);
+  } catch { /* ignore */ }
+
+  const total = sub.trafficGb ? Math.round(sub.trafficGb * 1024 * 1024 * 1024) : 0;
+  const expire = sub.expiresAt ? Math.floor(sub.expiresAt / 1000) : 0;
+
+  // Один сервер с «человеческим» названием (напр. «🇷🇺 Россия»).
+  const link = renameLink(sub.link, config.sub.serverName);
+  const body = Buffer.from(`${link}\n`, 'utf8').toString('base64');
+
+  return {
+    title: config.sub.title,
+    updateHours: config.sub.updateHours,
+    userinfo: `upload=0; download=${used}; total=${total}; expire=${expire}`,
+    body,
   };
 }
 
