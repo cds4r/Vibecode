@@ -30,49 +30,67 @@
   }
 
   const fmtDate = (ts) => (ts ? new Date(ts).toLocaleDateString('ru-RU') : 'бессрочно');
-  const priceLabel = (p) => (p.priceRub === 0 ? 'Бесплатно' : `${p.priceRub} ₽`);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  /* ---------- Features ---------- */
-  const FEATURES = [
-    { t: 'Без логов', d: 'Мы не храним историю посещений и не передаём данные третьим лицам.', i: 'M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z' },
-    { t: 'Высокая скорость', d: 'Тонкие серверы и современные протоколы — до 1 Гбит/с без просадок.', i: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z' },
-    { t: 'VLESS + Reality', d: 'Обходит блокировки там, где обычные VPN не работают.', i: 'M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20' },
-    { t: 'Все устройства', d: 'Android, iOS, Windows, macOS, роутеры. До 10 устройств.', i: 'M4 4h16v12H4zM2 20h20' },
-    { t: 'Локации по миру', d: 'Серверы в разных странах — выбирайте оптимальный маршрут.', i: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 2c3 3 3 17 0 20M2 12h20' },
-    { t: 'Поддержка 24/7', d: 'Поможем подключиться и решим любой вопрос в Telegram.', i: 'M21 15a4 4 0 01-4 4H8l-5 3V6a4 4 0 014-4h9a4 4 0 014 4z' },
+  /* ---------- Servers (декоративная витрина локаций) ---------- */
+  const SERVERS = [
+    { flag: '🇩🇪', name: 'Германия', city: 'FRANKFURT', tier: 'eu' },
+    { flag: '🇳🇱', name: 'Нидерланды', city: 'AMSTERDAM', tier: 'eu' },
+    { flag: '🇫🇮', name: 'Финляндия', city: 'HELSINKI', tier: 'eu' },
+    { flag: '🇵🇱', name: 'Польша', city: 'WARSAW', tier: 'eu' },
+    { flag: '🇫🇷', name: 'Франция', city: 'PARIS', tier: 'eu' },
+    { flag: '🇹🇷', name: 'Турция', city: 'ISTANBUL', tier: 'eu' },
+    { flag: '🇸🇪', name: 'Швеция', city: 'STOCKHOLM', tier: 'eu' },
+    { flag: '🇺🇸', name: 'США', city: 'NEW YORK', tier: 'us' },
+    { flag: '🇷🇺', name: 'Россия', city: 'MOSCOW', tier: 'ru' },
   ];
-  function renderFeatures() {
-    $('#features-grid').innerHTML = FEATURES.map((f) => `
-      <article class="feature">
-        <div class="feature__icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${f.i}"/></svg></div>
-        <h3>${f.t}</h3><p>${f.d}</p>
-      </article>`).join('');
+  function pingFor(tier) {
+    const r = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
+    if (tier === 'ru') return r(8, 40);
+    if (tier === 'us') return r(180, 320);
+    return r(30, 120);
+  }
+  function renderServers() {
+    const grid = $('#server-grid');
+    if (!grid) return;
+    grid.innerHTML = SERVERS.map((s) => {
+      const ms = pingFor(s.tier);
+      const color = ms <= 120 ? 'var(--green)' : (ms <= 320 ? 'var(--amber)' : 'var(--red)');
+      return `<div class="server">
+        <span class="flag">${s.flag}</span>
+        <div class="server-info"><div class="server-name">${esc(s.name)}</div><div class="server-meta">${esc(s.city)}</div></div>
+        <span class="server-ping" style="color:${color}">${ms}ms</span>
+      </div>`;
+    }).join('');
   }
 
   /* ---------- Plans ---------- */
   function renderPlans() {
     const grid = $('#plans-grid');
-    if (!plans.length) { grid.innerHTML = '<div class="plans__loading">Тарифы недоступны</div>'; return; }
-    grid.innerHTML = plans.map((p) => `
-      <article class="plan ${p.highlight ? 'plan--hot' : ''}">
-        ${p.badge ? `<span class="plan__badge">${esc(p.badge)}</span>` : ''}
-        <h3 class="plan__name">${esc(p.name)}</h3>
-        <div class="plan__price"><b>${priceLabel(p)}</b> ${p.priceRub ? '<span>/ период</span>' : ''}</div>
-        <p class="plan__desc">${esc(p.description || '')}</p>
-        <ul class="plan__list">${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
-        <button class="btn ${p.highlight ? 'btn--primary' : 'btn--ghost'} btn--block" data-buy="${p.id}">
-          ${p.priceRub === 0 ? 'Попробовать бесплатно' : 'Купить'}
-        </button>
-      </article>`).join('');
+    if (!plans.length) { grid.innerHTML = '<div class="plans-loading">Тарифы недоступны</div>'; return; }
+    grid.innerHTML = plans.map((p) => {
+      const free = p.priceRub === 0;
+      const num = free ? '0' : String(p.priceRub);
+      const pm = free ? 'бесплатно · 3 дня' : 'за период';
+      const cta = free ? 'Попробовать' : 'Подключить';
+      return `<article class="plan ${p.highlight ? 'plan-best' : ''}">
+        ${p.badge ? `<span class="plan-badge">${esc(p.badge)}</span>` : ''}
+        <div class="plan-period">${esc(p.name)}</div>
+        <div class="plan-price"><span class="plan-num">${num}</span><span class="plan-cur">₽</span></div>
+        <div class="plan-pm">${pm}</div>
+        <ul class="plan-features">${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
+        <button class="btn ${p.highlight ? 'btn-primary' : 'btn-ghost'} btn-block plan-cta" data-buy="${p.id}">${cta}</button>
+      </article>`;
+    }).join('');
     $$('[data-buy]', grid).forEach((b) => b.addEventListener('click', () => startCheckout(b.dataset.buy)));
+    wireReveal(grid);
+    wireRipple(grid);
   }
 
   /* ---------- Checkout ---------- */
   async function startCheckout(planId) {
     const plan = plans.find((p) => p.id === planId);
     if (!plan) return;
-    // Пробный тариф требует аккаунта (1 на пользователя).
     if (plan.priceRub === 0 && !getAuth()) {
       toast('Создайте аккаунт, чтобы получить пробную подписку');
       return openCabinet('register');
@@ -135,7 +153,6 @@
     ].filter(Boolean);
     const statsHtml = stats.map(([k, v]) => `<div class="stat"><span class="stat__k">${k}</span><span class="stat__v">${esc(v)}</span></div>`).join('');
 
-    // Кнопки быстрого импорта в популярные клиенты (deep links).
     const apps = s.subUrl ? [
       { name: 'Happ', href: 'happ://add/' + s.subUrl },
       { name: 'v2RayTun', href: 'v2raytun://import/' + encodeURIComponent(s.subUrl) },
@@ -177,22 +194,15 @@
   }
 
   async function copyText(text) {
-    // navigator.clipboard доступен только в защищённом контексте (HTTPS/localhost).
     if (navigator.clipboard && window.isSecureContext) {
-      try { await navigator.clipboard.writeText(text); return true; } catch { /* fallback ниже */ }
+      try { await navigator.clipboard.writeText(text); return true; } catch { /* fallback */ }
     }
-    // Фолбэк для HTTP: временный textarea + execCommand('copy').
     try {
       const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'fixed';
-      ta.style.top = '-1000px';
-      ta.style.opacity = '0';
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.top = '-1000px'; ta.style.opacity = '0';
       document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      ta.setSelectionRange(0, text.length);
+      ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
       const ok = document.execCommand('copy');
       document.body.removeChild(ta);
       return ok;
@@ -205,10 +215,9 @@
       if (await copyText(text)) {
         toast('Скопировано');
       } else {
-        // Последний резерв: выделяем поле рядом, чтобы можно было скопировать вручную.
         const inp = b.parentElement && b.parentElement.querySelector('input');
         if (inp) { inp.focus(); inp.select(); }
-        toast('Выделено — нажмите «Копировать» в меню');
+        toast('Выделено — скопируйте вручную');
       }
     }));
   }
@@ -260,7 +269,6 @@
         body: JSON.stringify({ email, password }),
       });
       setAuth({ token: res.token, user: res.user });
-      // Привяжем анонимные подписки к аккаунту.
       const tokens = getTokens();
       if (tokens.length) { try { await api('/auth/claim', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({ tokens }) }); } catch {} }
       toast(tab === 'login' ? 'Вы вошли' : 'Аккаунт создан');
@@ -276,10 +284,10 @@
     body.innerHTML = `
       <div class="acct-head">
         <div><div class="acct-hi">Здравствуйте 👋</div><div class="acct-email">${esc(auth?.user?.email || '')}${isAdmin ? ' <span class="acct-badge">админ</span>' : ''}</div></div>
-        <button class="btn btn--ghost" id="logoutBtn">Выйти</button>
+        <button class="btn btn--ghost btn--sm" id="logoutBtn">Выйти</button>
       </div>
       <div id="acctSubs"><p class="co__hint">Загрузка подписок…</p></div>
-      <a href="#plans" class="btn btn--primary btn--block" id="acctBuyMore" style="margin-top:16px">Купить ещё подписку</a>
+      <a href="#pricing" class="btn btn--primary btn--block" id="acctBuyMore" style="margin-top:16px">Купить ещё подписку</a>
       ${isAdmin ? '<a href="/admin/" class="btn btn--ghost btn--block" id="acctAdmin" style="margin-top:10px">Открыть админ-панель</a>' : ''}`;
     $('#logoutBtn').addEventListener('click', doLogout);
     $('#acctBuyMore').addEventListener('click', () => closeModal($('#cabinetModal')));
@@ -296,6 +304,7 @@
   }
 
   function subCardHtml(s) {
+    const state = s.disabled ? 'отключена' : (s.active ? 'до' : 'истекла');
     return `
       <div class="mine-card">
         <div class="mine-card__top">
@@ -306,7 +315,7 @@
           </div>
         </div>
         <div class="sub-meta" style="margin-bottom:0">
-          <span class="sub-chip">${s.active ? 'до' : 'истекла'} <b>${fmtDate(s.expiresAt)}</b></span>
+          <span class="sub-chip">${state} <b>${fmtDate(s.expiresAt)}</b></span>
           ${s.daysLeft != null ? `<span class="sub-chip"><b>${s.daysLeft} дн.</b></span>` : ''}
           <span class="sub-chip">${s.trafficGb ? s.trafficGb + ' ГБ' : 'безлимит'}</span>
         </div>
@@ -350,32 +359,64 @@
   $$('[data-close]').forEach((el) => el.addEventListener('click', () => $$('.modal').forEach(closeModal)));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal').forEach(closeModal); });
 
+  /* ---------- Visual effects ---------- */
+  function wireRipple(root = document) {
+    $$('.btn', root).forEach((b) => {
+      if (b.dataset.ripple) return; b.dataset.ripple = '1';
+      b.addEventListener('mousemove', (e) => {
+        const r = b.getBoundingClientRect();
+        b.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+        b.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+      });
+    });
+  }
+  let revealIO;
+  function wireReveal(root = document) {
+    if (!('IntersectionObserver' in window)) return;
+    if (!revealIO) {
+      revealIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); revealIO.unobserve(e.target); } });
+      }, { threshold: .12, rootMargin: '0px 0px -8% 0px' });
+    }
+    $$('.sect, .card, .server, .app, .plan, .bonus-row, .speed-card', root).forEach((el) => {
+      if (el.dataset.reveal) return; el.dataset.reveal = '1';
+      el.classList.add('reveal'); revealIO.observe(el);
+    });
+  }
+
   /* ---------- Header / nav ---------- */
   function initChrome() {
-    const header = $('#header');
-    window.addEventListener('scroll', () => header.classList.toggle('scrolled', window.scrollY > 8), { passive: true });
     const burger = $('#burger'), nav = $('#nav');
     burger.addEventListener('click', () => { const open = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', String(open)); });
-    $$('.nav__link').forEach((l) => l.addEventListener('click', () => { nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); }));
     const closeMenu = () => { nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); };
+    $$('.nav-link').forEach((l) => l.addEventListener('click', closeMenu));
     const bind = (id, tab) => { const el = $('#' + id); if (el) el.addEventListener('click', () => { closeMenu(); openCabinet(tab); }); };
     bind('loginBtn', 'login'); bind('navLoginBtn', 'login');
     bind('registerBtn', 'register'); bind('navRegisterBtn', 'register'); bind('heroRegisterBtn', 'register');
     bind('cabinetBtn'); bind('navCabinetBtn');
+    $$('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href');
+      if (id.length > 1 && $(id)) { e.preventDefault(); $(id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }));
     $('#year').textContent = new Date().getFullYear();
     updateAuthUI();
+    wireRipple();
+    wireReveal();
   }
 
   /* ---------- Init ---------- */
   async function init() {
     initChrome();
-    renderFeatures();
+    renderServers();
     try {
       const [cfg, pl] = await Promise.all([api('/config'), api('/plans')]);
       appConfig = cfg; plans = pl.plans || [];
       document.title = `${cfg.brand} — быстрый VPN без ограничений`;
       $('#brandName').textContent = cfg.brand;
-      if (cfg.botUsername) { const link = $('#tgLink'); link.href = 'https://t.me/' + cfg.botUsername; link.hidden = false; }
+      if (cfg.botUsername) {
+        const url = 'https://t.me/' + cfg.botUsername;
+        ['#tgLink', '#footTgLink'].forEach((sel) => { const el = $(sel); if (el) { el.href = url; el.hidden = false; } });
+      }
     } catch (e) { toast('Не удалось загрузить данные: ' + e.message); }
     renderPlans();
   }
