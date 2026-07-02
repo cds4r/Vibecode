@@ -68,6 +68,33 @@ ADMIN_TELEGRAM_IDS=ваш_tg_id
 sudo chown -R vibevpn:vibevpn /opt/vibevpn
 ```
 
+### 3.1. База данных MySQL/MariaDB + phpMyAdmin
+Приложение хранит данные в MySQL/MariaDB, если задан `DB_HOST` (иначе — в `data/db.json`).
+
+```bash
+sudo apt install -y mariadb-server
+sudo mysql <<'SQL'
+CREATE DATABASE IF NOT EXISTS vibevpn CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'vibevpn'@'localhost' IDENTIFIED BY 'ПРИДУМАЙТЕ_ПАРОЛЬ';
+GRANT ALL PRIVILEGES ON vibevpn.* TO 'vibevpn'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+```
+Пропишите доступы в `.env`:
+```
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=vibevpn
+DB_PASSWORD=ПРИДУМАЙТЕ_ПАРОЛЬ
+DB_NAME=vibevpn
+```
+Таблицы создаются автоматически при первом старте сервиса. phpMyAdmin (веб-интерфейс к БД):
+```bash
+sudo apt install -y phpmyadmin        # выберите веб-сервер (apache2) в диалоге
+# затем откройте http://ВАШ_СЕРВЕР/phpmyadmin и войдите под vibevpn
+```
+> `deploy/setup.sh` ставит MariaDB и заводит базу автоматически (phpMyAdmin — при `INSTALL_PHPMYADMIN=1`).
+
 ### 4. systemd-сервис (автозапуск + рестарт)
 ```bash
 sudo cp /opt/vibevpn/deploy/vibevpn.service /etc/systemd/system/vibevpn.service

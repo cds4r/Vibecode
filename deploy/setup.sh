@@ -51,6 +51,47 @@ if [[ ! -f "$APP_DIR/.env" ]]; then
   cp "$APP_DIR/.env.example" "$APP_DIR/.env"
 fi
 
+# ---- MySQL/MariaDB + phpMyAdmin (по желанию) ----
+# По умолчанию ставим MariaDB и заводим БД. Пропустить: SKIP_DB=1 sudo bash deploy/setup.sh
+# phpMyAdmin ставится, если INSTALL_PHPMYADMIN=1 (тянет за собой Apache/PHP).
+if [[ "${SKIP_DB:-0}" != "1" ]]; then
+  log "Устанавливаем MariaDB (хранилище данных)"
+  apt-get install -y mariadb-server
+  systemctl enable --now mariadb || service mariadb start || true
+
+  DB_NAME="${DB_NAME:-vibevpn}"
+  DB_USER="${DB_USER:-vibevpn}"
+  # Генерируем пароль один раз и сохраняем в .env, если он ещё не задан.
+  if grep -qE '^DB_HOST=.+' "$APP_DIR/.env"; then
+    log "DB_HOST уже настроен в .env — пропускаем создание БД"
+  else
+    DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 16)}"
+    log "Создаём базу $DB_NAME и пользователя $DB_USER"
+    mysql <<SQL
+CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+    # Прописываем доступы в .env (заменяем пустые значения).
+    sed -i \
+      -e "s|^DB_HOST=.*|DB_HOST=127.0.0.1|" \
+      -e "s|^DB_PORT=.*|DB_PORT=3306|" \
+      -e "s|^DB_USER=.*|DB_USER=${DB_USER}|" \
+      -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" \
+      -e "s|^DB_NAME=.*|DB_NAME=${DB_NAME}|" \
+      "$APP_DIR/.env"
+    log "БД настроена. Доступ (сохранён в .env): user=${DB_USER} pass=${DB_PASSWORD}"
+  fi
+
+  if [[ "${INSTALL_PHPMYADMIN:-0}" == "1" ]]; then
+    log "Устанавливаем phpMyAdmin (веб-интерфейс БД)"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y phpmyadmin || \
+      log "phpMyAdmin не установился автоматически — установите вручную (см. DEPLOY.md)"
+  fi
+fi
+
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 log "Устанавливаем systemd-сервис"
@@ -63,7 +104,9 @@ log "Готово. Дальше:"
 cat <<EOF
   1. Отредактируйте настройки:   sudo nano $APP_DIR/.env
      (адрес панели 3x-ui, токен бота, ADMIN_KEY, ALLOW_MOCK_PAY=false и т.д.)
+     БД MySQL уже прописана в .env (если не ставили с SKIP_DB=1).
   2. Перезапустите сервис:        sudo systemctl restart vibevpn
   3. Логи:                        sudo journalctl -u vibevpn -f
   4. Проксирование + HTTPS:       см. deploy/nginx.conf.example и DEPLOY.md
+  5. phpMyAdmin (если ставили):   http://ВАШ_СЕРВЕР/phpmyadmin
 EOF
