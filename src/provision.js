@@ -125,6 +125,7 @@ export async function subscriptionView(token) {
     token: sub.token,
     planName: sub.planName,
     email: sub.email,
+    serverName: config.sub.serverName,
     link: sub.link,
     subUrl: sub.subUrl,
     createdAt: sub.createdAt,

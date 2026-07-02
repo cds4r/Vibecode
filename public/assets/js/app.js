@@ -126,27 +126,54 @@
   }
 
   function subHtml(s) {
+    const server = s.serverName || '🇷🇺 Россия';
+    const stats = [
+      ['Действует до', fmtDate(s.expiresAt)],
+      s.daysLeft != null ? ['Осталось', s.daysLeft + ' дн.'] : null,
+      ['Устройств', String(s.devices)],
+      ['Трафик', s.trafficGb ? s.trafficGb + ' ГБ' : '∞'],
+    ].filter(Boolean);
+    const statsHtml = stats.map(([k, v]) => `<div class="stat"><span class="stat__k">${k}</span><span class="stat__v">${esc(v)}</span></div>`).join('');
+
+    // Кнопки быстрого импорта в популярные клиенты (deep links).
+    const apps = s.subUrl ? [
+      { name: 'Happ', href: 'happ://add/' + s.subUrl },
+      { name: 'v2RayTun', href: 'v2raytun://import/' + encodeURIComponent(s.subUrl) },
+      { name: 'Hiddify', href: 'hiddify://import/' + encodeURIComponent(s.subUrl) },
+      { name: 'Streisand', href: 'streisand://import/' + encodeURIComponent(s.subUrl) },
+    ] : [];
+    const appsHtml = apps.length ? `<div class="app-btns">${apps.map((a) => `
+      <a class="app-btn" href="${esc(a.href)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>${a.name}</a>`).join('')}</div>` : '';
+
+    const primary = s.subUrl
+      ? `<div class="field-label">URL подписки</div>
+         <div class="copybox"><input value="${esc(s.subUrl)}" readonly /><button class="btn btn--primary" data-copy="${encodeURIComponent(s.subUrl)}">Копировать</button></div>
+         ${appsHtml}
+         <ol class="steps">
+           <li>Установите приложение: Happ, v2RayTun, Hiddify или Streisand.</li>
+           <li>Нажмите кнопку приложения выше — или вставьте «URL подписки» в поле подписки вручную.</li>
+           <li>Выберите сервер «${esc(server)}» и подключайтесь.</li>
+         </ol>`
+      : `<div class="field-label">Ключ VLESS</div>
+         <div class="copybox"><input value="${esc(s.link)}" readonly /><button class="btn btn--primary" data-copy="${encodeURIComponent(s.link)}">Копировать</button></div>
+         <p class="co__hint" style="margin-top:12px">Импортируйте ключ в v2rayNG (Android), Streisand (iOS) или Hiddify (ПК).</p>`;
+
     return `
-      <div class="sub-ok"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Подписка активна</div>
-      <p class="co__hint">Тариф «${esc(s.planName)}».</p>
-      <div class="sub-meta">
-        <span class="sub-chip">Действует до: <b>${fmtDate(s.expiresAt)}</b></span>
-        ${s.daysLeft != null ? `<span class="sub-chip">Осталось: <b>${s.daysLeft} дн.</b></span>` : ''}
-        <span class="sub-chip">Устройств: <b>${s.devices}</b></span>
-        <span class="sub-chip">Трафик: <b>${s.trafficGb ? s.trafficGb + ' ГБ' : '∞'}</b></span>
-      </div>
-      ${s.mock ? '<div class="mock-note">⚠️ Демо-режим: ключ тестовый. Подключите панель 3x-ui (PANEL_URL) для реальных конфигов.</div>' : ''}
-      ${s.qr ? `<img class="qr" src="${s.qr}" alt="QR-код подписки" />` : ''}
-      ${s.subUrl ? `
-      <div class="field-label">URL подписки <span class="acct-badge">рекомендуется</span></div>
-      <div class="copybox"><input value="${esc(s.subUrl)}" readonly /><button class="btn btn--primary" data-copy="${encodeURIComponent(s.subUrl)}">Копировать</button></div>
-      <p class="co__hint" style="margin-top:6px">Вставьте эту ссылку в поле «URL подписки» вашего приложения (Happ, v2rayTun, Hiddify, Streisand, v2rayNG) — конфиги и маршрутизация обновятся автоматически.</p>
-      <details class="sub-adv"><summary>Показать одиночный ключ VLESS</summary>
-        <div class="copybox" style="margin-top:10px"><input value="${esc(s.link)}" readonly /><button class="btn btn--ghost" data-copy="${encodeURIComponent(s.link)}">Копировать</button></div>
-      </details>` : `
-      <div class="field-label">Ключ VLESS</div>
-      <div class="copybox"><input value="${esc(s.link)}" readonly /><button class="btn btn--ghost" data-copy="${encodeURIComponent(s.link)}">Копировать</button></div>
-      <p class="co__hint" style="margin-top:16px">Импортируйте ключ в v2rayNG (Android), Streisand (iOS) или Hiddify (ПК).</p>`}`;
+      <div class="sub2">
+        <div class="sub2__hero">
+          <div class="sub2__check"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+          <h2 class="sub2__title">Подписка активна</h2>
+          <p class="sub2__sub">Тариф «${esc(s.planName)}»</p>
+          <span class="sub2__server">${esc(server)}</span>
+        </div>
+        ${s.mock ? '<div class="mock-note">⚠️ Демо-режим: ключ тестовый. Подключите панель 3x-ui (PANEL_URL) для реальных конфигов.</div>' : ''}
+        ${s.qr ? `<div class="qr-card"><img src="${s.qr}" alt="QR-код подписки" /></div>` : ''}
+        ${primary}
+        <div class="sub2__stats">${statsHtml}</div>
+        ${s.subUrl ? `<details class="sub-adv"><summary>Показать одиночный ключ VLESS</summary>
+          <div class="copybox" style="margin-top:10px"><input value="${esc(s.link)}" readonly /><button class="btn btn--ghost" data-copy="${encodeURIComponent(s.link)}">Копировать</button></div>
+        </details>` : ''}
+      </div>`;
   }
 
   async function copyText(text) {
