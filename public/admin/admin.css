@@ -33,3 +33,7 @@ table.admin-table { width: 100%; border-collapse: collapse; min-width: 640px; }
 .badge--off { background: rgba(248,113,113,.15); color: #f87171; }
 
 .admin-empty { padding: 40px; text-align: center; color: var(--muted); }
+
+/* Опасное действие (блокировка / отключение) */
+.btn--danger { color: #fca5a5; border-color: rgba(248,113,113,.35); }
+.btn--danger:hover { color: #fecaca; border-color: rgba(248,113,113,.6); background: rgba(248,113,113,.1); }

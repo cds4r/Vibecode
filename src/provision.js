@@ -11,7 +11,7 @@ function slug() {
 /**
  * Создаёт заказ.
  */
-export function createOrder({ planId, userId, source = 'web', contact = {} }) {
+export async function createOrder({ planId, userId, source = 'web', contact = {} }) {
   const plan = getPlan(planId);
   if (!plan) throw new Error('Тариф не найден');
   const order = {
@@ -27,7 +27,7 @@ export function createOrder({ planId, userId, source = 'web', contact = {} }) {
     paidAt: null,
     subscriptionToken: null,
   };
-  db.createOrder(order);
+  await db.createOrder(order);
   return order;
 }
 
@@ -36,7 +36,7 @@ export function createOrder({ planId, userId, source = 'web', contact = {} }) {
  * Идемпотентно: повторный вызов вернёт уже созданную подписку.
  */
 export async function fulfillOrder(orderId, payment = {}) {
-  const order = db.getOrder(orderId);
+  const order = await db.getOrder(orderId);
   if (!order) throw new Error('Заказ не найден');
   if (order.status === 'paid' && order.subscriptionToken) {
     return db.getSubscription(order.subscriptionToken);
@@ -73,9 +73,10 @@ export async function fulfillOrder(orderId, payment = {}) {
     devices: plan.devices,
     trafficGb: plan.trafficGb,
     mock: !!client.mock,
+    disabled: false,
   };
-  db.createSubscription(sub);
-  db.updateOrder(order.id, {
+  await db.createSubscription(sub);
+  await db.updateOrder(order.id, {
     status: 'paid',
     paidAt: Date.now(),
     payment,
@@ -83,6 +84,9 @@ export async function fulfillOrder(orderId, payment = {}) {
   });
   return sub;
 }
+
+// Не истекла по сроку.
+const notExpired = (sub) => sub.expiresAt === 0 || sub.expiresAt > Date.now();
 
 // Лёгкая сводка подписки (без QR и запроса трафика) — для списков.
 export function subscriptionSummary(sub) {
@@ -96,13 +100,15 @@ export function subscriptionSummary(sub) {
     devices: sub.devices,
     trafficGb: sub.trafficGb,
     daysLeft: sub.expiresAt ? Math.max(0, Math.ceil((sub.expiresAt - Date.now()) / 86400000)) : null,
-    active: sub.expiresAt === 0 || sub.expiresAt > Date.now(),
+    disabled: !!sub.disabled,
+    // Активна = не отключена и не истекла.
+    active: !sub.disabled && notExpired(sub),
     mock: sub.mock,
   };
 }
 
 export async function subscriptionView(token) {
-  const sub = db.getSubscription(token);
+  const sub = await db.getSubscription(token);
   if (!sub) return null;
   let usage = null;
   try {
@@ -133,7 +139,8 @@ export async function subscriptionView(token) {
     devices: sub.devices,
     trafficGb: sub.trafficGb,
     daysLeft: sub.expiresAt ? Math.max(0, Math.ceil((sub.expiresAt - Date.now()) / 86400000)) : null,
-    active: sub.expiresAt === 0 || sub.expiresAt > Date.now(),
+    disabled: !!sub.disabled,
+    active: !sub.disabled && notExpired(sub),
     mock: sub.mock,
     usage,
     qr,
@@ -151,8 +158,10 @@ function renameLink(link, serverName) {
  * base64-тело со списком конфигов + заголовки (название подписки, срок и т.п.).
  */
 export async function getSubFeed(token) {
-  const sub = db.getSubscription(token);
+  const sub = await db.getSubscription(token);
   if (!sub) return null;
+  // Отключённая подписка не отдаёт конфиги — клиент теряет доступ.
+  if (sub.disabled) return null;
 
   let used = 0;
   try {

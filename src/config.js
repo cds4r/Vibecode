@@ -53,6 +53,17 @@ export const config = {
     insecureTLS: bool(process.env.PANEL_INSECURE_TLS, true),
   },
 
+  // Хранилище данных. Если задан DB_HOST — используется MySQL/MariaDB
+  // (данные видны в phpMyAdmin). Иначе — простой JSON-файл в data/db.json.
+  db: {
+    host: process.env.DB_HOST || '',
+    port: num(process.env.DB_PORT, 3306),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    name: process.env.DB_NAME || 'vibevpn',
+    connectionLimit: num(process.env.DB_POOL, 10),
+  },
+
   bot: {
     token: process.env.BOT_TOKEN || '',
     payment: (process.env.BOT_PAYMENT || 'stars').toLowerCase(),
@@ -67,3 +78,6 @@ export const config = {
 
 // В MOCK-режиме работаем, если не задан адрес панели.
 export const isPanelMock = !config.panel.url;
+
+// Используем MySQL/MariaDB, если задан DB_HOST. Иначе — JSON-файл.
+export const isDbMysql = !!config.db.host;

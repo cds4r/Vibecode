@@ -25,25 +25,32 @@ function validEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ''));
 }
 
-function issueSession(userId) {
+async function issueSession(userId) {
   const token = 'ses_' + crypto.randomBytes(24).toString('hex');
-  db.createSession({ token, userId, createdAt: Date.now() });
+  await db.createSession({ token, userId, createdAt: Date.now() });
   return token;
 }
 
 export function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, email: u.email || null, name: u.name || '', createdAt: u.createdAt, admin: isAdminEmail(u.email) };
+  return {
+    id: u.id,
+    email: u.email || null,
+    name: u.name || '',
+    createdAt: u.createdAt,
+    admin: isAdminEmail(u.email),
+    blocked: !!u.blocked,
+  };
 }
 
-export function register({ email, password, name }) {
+export async function register({ email, password, name }) {
   email = String(email || '').trim().toLowerCase();
   if (!validEmail(email)) throw new Error('Введите корректный email');
   if (!password || password.length < 6) throw new Error('Пароль должен быть не короче 6 символов');
-  if (db.findUserByEmail(email)) throw new Error('Пользователь с таким email уже существует');
+  if (await db.findUserByEmail(email)) throw new Error('Пользователь с таким email уже существует');
 
   const { salt, hash } = hashPassword(password);
-  const user = db.upsertUser({
+  const user = await db.upsertUser({
     id: id('usr_'),
     email,
     name: name || '',
@@ -51,41 +58,52 @@ export function register({ email, password, name }) {
     passwordHash: hash,
     createdAt: Date.now(),
   });
-  const token = issueSession(user.id);
+  const token = await issueSession(user.id);
   return { token, user: publicUser(user) };
 }
 
-export function login({ email, password }) {
+export async function login({ email, password }) {
   email = String(email || '').trim().toLowerCase();
-  const user = db.findUserByEmail(email);
+  const user = await db.findUserByEmail(email);
   if (!user || !user.passwordHash) throw new Error('Неверный email или пароль');
   if (!verifyPassword(password, user.salt, user.passwordHash)) throw new Error('Неверный email или пароль');
-  const token = issueSession(user.id);
+  if (user.blocked) throw new Error('Аккаунт заблокирован. Обратитесь в поддержку.');
+  const token = await issueSession(user.id);
   return { token, user: publicUser(user) };
 }
 
-export function logout(token) {
-  if (token) db.deleteSession(token);
+export async function logout(token) {
+  if (token) await db.deleteSession(token);
 }
 
-export function userFromToken(token) {
+export async function userFromToken(token) {
   if (!token) return null;
-  const session = db.getSession(token);
+  const session = await db.getSession(token);
   if (!session) return null;
   if (Date.now() - session.createdAt > SESSION_TTL) {
-    db.deleteSession(token);
+    await db.deleteSession(token);
     return null;
   }
-  return db.getUser(session.userId);
+  const user = await db.getUser(session.userId);
+  // Заблокированный пользователь не может пользоваться сессией.
+  if (user && user.blocked) {
+    await db.deleteSession(token);
+    return null;
+  }
+  return user;
 }
 
 // Express-middleware: кладёт req.user (или null)
-export function authOptional(req, _res, next) {
+export async function authOptional(req, _res, next) {
   const header = req.get('authorization') || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   req.authToken = token;
-  req.user = userFromToken(token);
-  next();
+  try {
+    req.user = await userFromToken(token);
+    next();
+  } catch (e) {
+    next(e);
+  }
 }
 
 export function authRequired(req, res, next) {
