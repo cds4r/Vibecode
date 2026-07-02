@@ -155,40 +155,85 @@
     return table(['ID', 'Дата', 'Тариф', 'Сумма', 'Статус', 'Клиент', ''], rows);
   }
 
+  function subStatusBadge(s) {
+    if (s.disabled) return '<span class="badge badge--off">отключена</span>';
+    if (s.active) return '<span class="badge badge--on">активна</span>';
+    return '<span class="badge badge--pending">истекла</span>';
+  }
+
   function renderSubs(d) {
     const subs = d.subscriptions || [];
     if (!subs.length) return '<p class="admin-empty">Подписок пока нет</p>';
-    const rows = subs.map((s) => `<tr>
-      <td>${esc(s.planName)}</td>
-      <td class="mono">${esc(s.email)}</td>
-      <td>${fmtDateTime(s.createdAt)}</td>
-      <td>${fmtDate(s.expiresAt)}</td>
-      <td>${s.daysLeft != null ? s.daysLeft + ' дн.' : '∞'}</td>
-      <td>${s.active ? '<span class="badge badge--on">активна</span>' : '<span class="badge badge--off">истекла</span>'}</td>
-    </tr>`).join('');
-    return table(['Тариф', 'Email клиента (3x-ui)', 'Создана', 'До', 'Осталось', 'Статус'], rows);
+    const rows = subs.map((s) => {
+      const action = s.disabled
+        ? `<button class="btn btn--ghost btn--sm" data-enable-sub="${esc(s.token)}">Включить</button>`
+        : `<button class="btn btn--ghost btn--sm btn--danger" data-disable-sub="${esc(s.token)}">Отключить</button>`;
+      return `<tr>
+        <td>${esc(s.planName)}</td>
+        <td class="mono">${esc(s.email)}</td>
+        <td>${fmtDateTime(s.createdAt)}</td>
+        <td>${fmtDate(s.expiresAt)}</td>
+        <td>${s.daysLeft != null ? s.daysLeft + ' дн.' : '∞'}</td>
+        <td>${subStatusBadge(s)}</td>
+        <td>${action}</td>
+      </tr>`;
+    }).join('');
+    return table(['Тариф', 'Email клиента (3x-ui)', 'Создана', 'До', 'Осталось', 'Статус', ''], rows);
   }
 
   function renderUsers(d) {
     const users = d.users || [];
     if (!users.length) return '<p class="admin-empty">Пользователей пока нет</p>';
-    const rows = users.map((u) => `<tr>
-      <td>${esc(u.email || '—')}</td>
-      <td>${u.telegramId ? '@' + esc(u.username || u.telegramId) : '—'}</td>
-      <td>${fmtDateTime(u.createdAt)}</td>
-      <td>${u.subscriptions}</td>
-    </tr>`).join('');
-    return table(['Email', 'Telegram', 'Регистрация', 'Подписок'], rows);
+    const rows = users.map((u) => {
+      const status = u.blocked
+        ? '<span class="badge badge--off">заблокирован</span>'
+        : '<span class="badge badge--on">активен</span>';
+      const action = u.blocked
+        ? `<button class="btn btn--ghost btn--sm" data-unblock="${esc(u.id)}">Разблокировать</button>`
+        : `<button class="btn btn--ghost btn--sm btn--danger" data-block="${esc(u.id)}">Заблокировать</button>`;
+      return `<tr>
+        <td>${esc(u.email || '—')}</td>
+        <td>${u.telegramId ? '@' + esc(u.username || u.telegramId) : '—'}</td>
+        <td>${fmtDateTime(u.createdAt)}</td>
+        <td>${u.subscriptions}</td>
+        <td>${status}</td>
+        <td>${action}</td>
+      </tr>`;
+    }).join('');
+    return table(['Email', 'Telegram', 'Регистрация', 'Подписок', 'Статус', ''], rows);
+  }
+
+  // Универсальный обработчик кнопок-действий с подтверждением и восстановлением подписи.
+  function bindAction(selector, buildReq, confirmMsg) {
+    $$(selector).forEach((b) => b.addEventListener('click', async () => {
+      if (confirmMsg && !confirm(confirmMsg)) return;
+      const orig = b.textContent;
+      b.disabled = true; b.textContent = '…';
+      try {
+        const { path, opts, done } = buildReq(b);
+        await adminApi(path, opts);
+        toast(done);
+        refreshAll();
+      } catch (err) { toast(err.message); b.disabled = false; b.textContent = orig; }
+    }));
   }
 
   function wireActions() {
-    $$('[data-fulfill]').forEach((b) => b.addEventListener('click', async () => {
-      b.disabled = true; b.textContent = '…';
-      try {
-        await adminApi(`/admin/orders/${b.dataset.fulfill}/fulfill`, { method: 'POST' });
-        toast('Подписка выдана');
-        refreshAll();
-      } catch (err) { toast(err.message); b.disabled = false; b.textContent = 'Выдать'; }
+    bindAction('[data-fulfill]', (b) => ({
+      path: `/admin/orders/${b.dataset.fulfill}/fulfill`, opts: { method: 'POST' }, done: 'Подписка выдана',
+    }));
+    const post = (body) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    bindAction('[data-disable-sub]', (b) => ({
+      path: `/admin/subscriptions/${b.dataset.disableSub}/disable`, opts: post({ disabled: true }), done: 'Подписка отключена',
+    }), 'Отключить эту подписку? Клиент потеряет доступ.');
+    bindAction('[data-enable-sub]', (b) => ({
+      path: `/admin/subscriptions/${b.dataset.enableSub}/disable`, opts: post({ disabled: false }), done: 'Подписка включена',
+    }));
+    bindAction('[data-block]', (b) => ({
+      path: `/admin/users/${b.dataset.block}/block`, opts: post({ blocked: true }), done: 'Пользователь заблокирован',
+    }), 'Заблокировать пользователя? Его сессии завершатся, а подписки отключатся.');
+    bindAction('[data-unblock]', (b) => ({
+      path: `/admin/users/${b.dataset.unblock}/block`, opts: post({ blocked: false }), done: 'Пользователь разблокирован',
     }));
   }
 

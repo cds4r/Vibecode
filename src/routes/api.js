@@ -3,7 +3,7 @@ import { config, isPanelMock } from '../config.js';
 import { plans, getPlan } from '../plans.js';
 import { createOrder, fulfillOrder, subscriptionView, subscriptionSummary } from '../provision.js';
 import { db } from '../store.js';
-import { panelStatus } from '../xui.js';
+import { panelStatus, setClientEnabled } from '../xui.js';
 import { register, login, logout, publicUser, authOptional, authRequired, userFromToken, isAdminEmail } from '../auth.js';
 
 export function apiRouter(ctx = {}) {
@@ -23,39 +23,39 @@ export function apiRouter(ctx = {}) {
   router.get('/status', async (req, res) => res.json(await panelStatus()));
 
   /* ===================== Auth ===================== */
-  router.post('/auth/register', (req, res) => {
+  router.post('/auth/register', async (req, res) => {
     try {
       const { email, password, name } = req.body || {};
-      res.json(register({ email, password, name }));
+      res.json(await register({ email, password, name }));
     } catch (e) { res.status(400).json({ error: e.message }); }
   });
 
-  router.post('/auth/login', (req, res) => {
+  router.post('/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body || {};
-      res.json(login({ email, password }));
+      res.json(await login({ email, password }));
     } catch (e) { res.status(400).json({ error: e.message }); }
   });
 
-  router.post('/auth/logout', authOptional, (req, res) => {
-    logout(req.authToken);
+  router.post('/auth/logout', authOptional, async (req, res) => {
+    await logout(req.authToken);
     res.json({ ok: true });
   });
 
-  router.get('/auth/me', authRequired, (req, res) => {
-    const subs = db.subscriptionsByUser(req.user.id).map(subscriptionSummary);
-    res.json({ user: publicUser(req.user), subscriptions: subs });
+  router.get('/auth/me', authRequired, async (req, res) => {
+    const list = await db.subscriptionsByUser(req.user.id);
+    res.json({ user: publicUser(req.user), subscriptions: list.map(subscriptionSummary) });
   });
 
   // Привязать анонимные подписки (по токенам из localStorage) к аккаунту.
-  router.post('/auth/claim', authRequired, (req, res) => {
+  router.post('/auth/claim', authRequired, async (req, res) => {
     const tokens = Array.isArray(req.body?.tokens) ? req.body.tokens : [];
     let claimed = 0;
     for (const t of tokens) {
-      const sub = db.getSubscription(t);
+      const sub = await db.getSubscription(t);
       if (sub && !sub.userId) {
-        db.updateSubscription(t, { userId: req.user.id });
-        if (sub.orderId) db.updateOrder(sub.orderId, { userId: req.user.id });
+        await db.updateSubscription(t, { userId: req.user.id });
+        if (sub.orderId) await db.updateOrder(sub.orderId, { userId: req.user.id });
         claimed++;
       }
     }
@@ -75,13 +75,13 @@ export function apiRouter(ctx = {}) {
         if (!req.user) {
           return res.status(401).json({ error: 'Войдите в аккаунт, чтобы получить пробную подписку' });
         }
-        const alreadyUsed = db.subscriptionsByUser(req.user.id).some((s) => s.planId === plan.id);
-        if (alreadyUsed) {
+        const mine = await db.subscriptionsByUser(req.user.id);
+        if (mine.some((s) => s.planId === plan.id)) {
           return res.status(409).json({ error: 'Пробная подписка уже была активирована на этом аккаунте' });
         }
       }
 
-      const order = createOrder({
+      const order = await createOrder({
         planId,
         source: 'web',
         userId: req.user?.id || null,
@@ -99,7 +99,7 @@ export function apiRouter(ctx = {}) {
   router.post('/orders/:id/confirm', async (req, res) => {
     if (!config.allowMockPay) return res.status(403).json({ error: 'Демо-оплата отключена. Настройте платёжного провайдера.' });
     try {
-      const order = db.getOrder(req.params.id);
+      const order = await db.getOrder(req.params.id);
       if (!order) return res.status(404).json({ error: 'Заказ не найден' });
       const sub = await fulfillOrder(order.id, { method: 'mock' });
       res.json({ token: sub.token });
@@ -115,7 +115,7 @@ export function apiRouter(ctx = {}) {
   });
 
   /* ===================== Admin ===================== */
-  const requireAdmin = (req, res, next) => {
+  const requireAdmin = async (req, res, next) => {
     // 1) По ключу администратора
     const key = req.get('x-admin-key');
     if (config.adminKey && key === config.adminKey) return next();
@@ -123,8 +123,10 @@ export function apiRouter(ctx = {}) {
     const header = req.get('authorization') || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (token) {
-      const user = userFromToken(token);
-      if (user && isAdminEmail(user.email)) return next();
+      try {
+        const user = await userFromToken(token);
+        if (user && isAdminEmail(user.email)) return next();
+      } catch { /* ignore */ }
     }
     return res.status(401).json({ error: 'Не авторизовано' });
   };
@@ -132,28 +134,31 @@ export function apiRouter(ctx = {}) {
   // Проверка ключа (для формы входа в админку)
   router.post('/admin/auth', requireAdmin, (req, res) => res.json({ ok: true }));
 
-  router.get('/admin/stats', requireAdmin, (req, res) => res.json(db.stats()));
+  router.get('/admin/stats', requireAdmin, async (req, res) => res.json(await db.stats()));
 
-  router.get('/admin/orders', requireAdmin, (req, res) => {
-    const orders = db.listOrders().map((o) => ({
+  router.get('/admin/orders', requireAdmin, async (req, res) => {
+    const list = await db.listOrders();
+    const orders = await Promise.all(list.map(async (o) => ({
       ...o,
       planName: getPlan(o.planId)?.name || o.planId,
-      user: o.userId ? publicUser(db.getUser(o.userId)) : null,
-    }));
+      user: o.userId ? publicUser(await db.getUser(o.userId)) : null,
+    })));
     res.json({ orders });
   });
 
-  router.get('/admin/subscriptions', requireAdmin, (req, res) => {
-    res.json({ subscriptions: db.listSubscriptions().map(subscriptionSummary) });
+  router.get('/admin/subscriptions', requireAdmin, async (req, res) => {
+    const list = await db.listSubscriptions();
+    res.json({ subscriptions: list.map(subscriptionSummary) });
   });
 
-  router.get('/admin/users', requireAdmin, (req, res) => {
-    const users = db.listUsers().map((u) => ({
+  router.get('/admin/users', requireAdmin, async (req, res) => {
+    const list = await db.listUsers();
+    const users = await Promise.all(list.map(async (u) => ({
       ...publicUser(u),
       telegramId: u.telegramId || null,
       username: u.username || null,
-      subscriptions: db.subscriptionsByUser(u.id).length,
-    }));
+      subscriptions: (await db.subscriptionsByUser(u.id)).length,
+    })));
     res.json({ users });
   });
 
@@ -161,6 +166,33 @@ export function apiRouter(ctx = {}) {
     try {
       const sub = await fulfillOrder(req.params.id, { method: 'admin' });
       res.json({ token: sub.token });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Блокировка / разблокировка пользователя. Блокировка отключает все его подписки
+  // и завершает активные сессии; разблокировка снова включает подписки.
+  router.post('/admin/users/:id/block', requireAdmin, async (req, res) => {
+    try {
+      const blocked = req.body?.blocked !== false;
+      const user = await db.getUser(req.params.id);
+      if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+      await db.setUserBlocked(req.params.id, blocked);
+      // Отражаем состояние в панели 3x-ui (best-effort).
+      const subs = await db.subscriptionsByUser(req.params.id);
+      await Promise.all(subs.map((s) => setClientEnabled(s.email, !blocked)));
+      res.json({ ok: true, blocked });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Включение / отключение конкретной подписки.
+  router.post('/admin/subscriptions/:token/disable', requireAdmin, async (req, res) => {
+    try {
+      const disabled = req.body?.disabled !== false;
+      const sub = await db.getSubscription(req.params.token);
+      if (!sub) return res.status(404).json({ error: 'Подписка не найдена' });
+      await db.updateSubscription(req.params.token, { disabled });
+      await setClientEnabled(sub.email, !disabled);
+      res.json({ ok: true, disabled });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 

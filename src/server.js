@@ -3,16 +3,20 @@ import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { config, isPanelMock } from './config.js';
+import { config, isPanelMock, isDbMysql } from './config.js';
 import { apiRouter } from './routes/api.js';
 import { getSubFeed } from './provision.js';
 import { startBot } from './bot.js';
+import { initStore } from './store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 async function main() {
   const ctx = { botUsername: null };
+
+  // Инициализируем хранилище (создание таблиц MySQL / каталога JSON).
+  await initStore();
 
   // Запускаем Telegram-бота (если задан токен) — до старта сервера, чтобы узнать username.
   let bot = null;
@@ -62,6 +66,7 @@ async function main() {
     console.log(`\n🚀 ${config.brandName} запущен: ${config.publicUrl}`);
     console.log(`   Порт: ${config.port}`);
     console.log(`   Панель 3x-ui: ${isPanelMock ? 'MOCK-режим (демо-конфиги)' : config.panel.url}`);
+    console.log(`   Хранилище: ${isDbMysql ? `MySQL ${config.db.host}:${config.db.port}/${config.db.name}` : 'JSON (data/db.json)'}`);
     console.log(`   Демо-оплата: ${config.allowMockPay ? 'включена' : 'выключена'}`);
   });
 

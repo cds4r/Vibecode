@@ -200,6 +200,49 @@ export async function createClient({ email, expiryMs, trafficGb, limitIp = 0 }) 
 }
 
 /**
+ * Включает/выключает клиента в инбаунде по email (best-effort).
+ * В MOCK-режиме ничего не делает. Ошибки не пробрасываются наверх —
+ * источник правды об отключении хранится в нашей БД.
+ */
+export async function setClientEnabled(email, enabled) {
+  if (isPanelMock) return { ok: true, mock: true };
+  try {
+    return await withLock(async () => {
+      const inbound = await getInbound(config.panel.inboundId);
+      const settings = asObj(inbound.settings);
+      const clients = Array.isArray(settings.clients) ? settings.clients : [];
+      const client = clients.find((c) => c.email === email);
+      if (!client) return { ok: false, notFound: true };
+      client.enable = !!enabled;
+
+      const body = {
+        id: inbound.id,
+        up: inbound.up || 0,
+        down: inbound.down || 0,
+        total: inbound.total || 0,
+        remark: inbound.remark || '',
+        enable: inbound.enable !== false,
+        expiryTime: inbound.expiryTime || 0,
+        listen: inbound.listen || '',
+        port: inbound.port,
+        protocol: inbound.protocol,
+        settings: JSON.stringify(settings),
+        streamSettings: asStr(inbound.streamSettings),
+        sniffing: asStr(inbound.sniffing),
+      };
+      const json = await panelFetch(`/panel/api/inbounds/update/${config.panel.inboundId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return { ok: !!json.success, msg: json.msg };
+    });
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+/**
  * Возвращает трафик клиента по email: { up, down, total, expiryTime, enable }.
  */
 export async function getClientTraffic(email) {

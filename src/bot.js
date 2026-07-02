@@ -41,9 +41,9 @@ function payLabel(plan) {
 async function registerUser(ctx) {
   const from = ctx.from;
   if (!from) return null;
-  let user = db.findUserByTelegram(from.id);
+  let user = await db.findUserByTelegram(from.id);
   if (!user) {
-    user = db.upsertUser({
+    user = await db.upsertUser({
       id: id('usr_'),
       telegramId: String(from.id),
       username: from.username || '',
@@ -102,13 +102,14 @@ async function startBuy(ctx, planId) {
 
   // Пробный тариф — не более одного на пользователя.
   if (plan.priceRub === 0 && plan.priceStars === 0) {
-    const alreadyUsed = user && db.subscriptionsByUser(user.id).some((s) => s.planId === plan.id);
+    const mine = user ? await db.subscriptionsByUser(user.id) : [];
+    const alreadyUsed = mine.some((s) => s.planId === plan.id);
     if (alreadyUsed) {
       return ctx.answerCbQuery('Пробная подписка уже была активирована', { show_alert: true });
     }
   }
 
-  const order = createOrder({
+  const order = await createOrder({
     planId,
     userId: user?.id || null,
     source: 'bot',
@@ -189,7 +190,7 @@ export async function startBot() {
 
   bot.action('mine', async (ctx) => {
     await ctx.answerCbQuery();
-    const subs = db.subscriptionsByTelegram(ctx.from.id);
+    const subs = await db.subscriptionsByTelegram(ctx.from.id);
     if (!subs.length) {
       return ctx.reply('У вас пока нет подписок.', plansKeyboard());
     }
